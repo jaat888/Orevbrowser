@@ -1,6 +1,7 @@
 package com.privbrowse.app.ui
 
 import android.annotation.SuppressLint
+import com.privbrowse.app.BuildConfig
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -141,6 +142,7 @@ class MainActivity : AppCompatActivity() {
         const val KEY_CLEAR_NETWORK_LOG_EXIT = "clear_network_log_exit"
         const val KEY_PURGE_CONSENT_EXIT = "purge_consent_exit"
         const val KEY_AUTO_FOCUS_ADDRESS = "auto_focus_address"
+        const val KEY_AUTO_CLEAR_CLIPBOARD = "auto_clear_clipboard"
 
         const val ACTION_OPEN_SITE_CONTROLS = "com.privbrowse.app.action.SITE_CONTROLS"
         const val ACTION_OPEN_TAB_MANAGER = "com.privbrowse.app.action.TAB_MANAGER"
@@ -148,6 +150,37 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_OPEN_PAGE_TOOLS = "com.privbrowse.app.action.PAGE_TOOLS"
         const val ACTION_PANIC = "com.privbrowse.app.action.PANIC"
         const val ACTION_APPLY_PRESET = "com.privbrowse.app.action.APPLY_PRESET"
+        const val ACTION_SHARE_PAGE = "com.privbrowse.app.action.SHARE_PAGE"
+        const val ACTION_COPY_URL = "com.privbrowse.app.action.COPY_URL"
+        const val ACTION_COPY_TITLE = "com.privbrowse.app.action.COPY_TITLE"
+        const val ACTION_FIND_IN_PAGE = "com.privbrowse.app.action.FIND_IN_PAGE"
+        const val ACTION_HARD_RELOAD = "com.privbrowse.app.action.HARD_RELOAD"
+        const val ACTION_CAPTURE_SCREENSHOT = "com.privbrowse.app.action.CAPTURE_SCREENSHOT"
+        const val ACTION_TRANSLATE_PAGE = "com.privbrowse.app.action.TRANSLATE_PAGE"
+        const val ACTION_LISTEN_PAGE = "com.privbrowse.app.action.LISTEN_PAGE"
+        const val ACTION_COPY_PAGE_TEXT = "com.privbrowse.app.action.COPY_PAGE_TEXT"
+        const val ACTION_COPY_PAGE_LINKS = "com.privbrowse.app.action.COPY_PAGE_LINKS"
+        const val ACTION_COPY_PAGE_METADATA = "com.privbrowse.app.action.COPY_PAGE_METADATA"
+        const val ACTION_VIEW_SOURCE = "com.privbrowse.app.action.VIEW_SOURCE"
+        const val ACTION_SAVE_ARCHIVE = "com.privbrowse.app.action.SAVE_ARCHIVE"
+        const val ACTION_PRINT_PDF = "com.privbrowse.app.action.PRINT_PDF"
+        const val ACTION_OPEN_EXTERNAL = "com.privbrowse.app.action.OPEN_EXTERNAL"
+        const val ACTION_TOGGLE_DESKTOP = "com.privbrowse.app.action.TOGGLE_DESKTOP"
+        const val ACTION_ADD_BOOKMARK = "com.privbrowse.app.action.ADD_BOOKMARK"
+        const val ACTION_CLEAR_SITE = "com.privbrowse.app.action.CLEAR_SITE"
+        const val ACTION_SHOW_PRIVACY_SCORE = "com.privbrowse.app.action.PRIVACY_SCORE"
+        const val ACTION_SHOW_DIAGNOSTICS = "com.privbrowse.app.action.DIAGNOSTICS"
+        const val ACTION_OPEN_BOOKMARKS = "com.privbrowse.app.action.BOOKMARKS"
+        const val ACTION_OPEN_HISTORY = "com.privbrowse.app.action.HISTORY"
+        const val ACTION_OPEN_DOWNLOADS = "com.privbrowse.app.action.DOWNLOADS"
+        const val ACTION_OPEN_VPN = "com.privbrowse.app.action.VPN"
+        const val ACTION_OPEN_V2RAY = "com.privbrowse.app.action.V2RAY"
+        const val ACTION_DUPLICATE_TAB = "com.privbrowse.app.action.DUPLICATE_TAB"
+        const val ACTION_OPEN_URL_NEW_TAB = "com.privbrowse.app.action.OPEN_URL_NEW_TAB"
+        const val ACTION_SAVE_READING_LIST = "com.privbrowse.app.action.SAVE_READING_LIST"
+        const val ACTION_CLEAR_HISTORY = "com.privbrowse.app.action.CLEAR_HISTORY"
+        const val ACTION_CLEAR_ALL_DATA = "com.privbrowse.app.action.CLEAR_ALL_DATA"
+        const val ACTION_TOGGLE_DARK_MODE = "com.privbrowse.app.action.TOGGLE_DARK_MODE"
         const val EXTRA_PRESET = "com.privbrowse.app.extra.PRESET"
 
         private const val REQ_BOOKMARKS = 100
@@ -258,6 +291,37 @@ class MainActivity : AppCompatActivity() {
             ACTION_OPEN_PAGE_TOOLS -> if (currentTab() != null) { showPageTools(); true } else false
             ACTION_PANIC -> { showPanicDialog(); true }
             ACTION_APPLY_PRESET -> { applyPreset(intent?.getStringExtra(EXTRA_PRESET).orEmpty()); true }
+            ACTION_SHARE_PAGE -> { shareCurrentPage(); true }
+            ACTION_COPY_URL -> { currentTab()?.let { copyText("Page URL", it.url) }; true }
+            ACTION_COPY_TITLE -> { currentTab()?.let { copyText("Page title", it.title) }; true }
+            ACTION_FIND_IN_PAGE -> { showFindInPageDialog(); true }
+            ACTION_HARD_RELOAD -> { hardReload(); true }
+            ACTION_CAPTURE_SCREENSHOT -> { capturePageScreenshot(); true }
+            ACTION_TRANSLATE_PAGE -> { translatePage(); true }
+            ACTION_LISTEN_PAGE -> { speakPage(); true }
+            ACTION_COPY_PAGE_TEXT -> { copyPageText(); true }
+            ACTION_COPY_PAGE_LINKS -> { copyAllLinks(); true }
+            ACTION_COPY_PAGE_METADATA -> { copyPageMetadata(); true }
+            ACTION_VIEW_SOURCE -> { viewPageSource(); true }
+            ACTION_SAVE_ARCHIVE -> { saveWebArchive(); true }
+            ACTION_PRINT_PDF -> { savePageAsPdf(); true }
+            ACTION_OPEN_EXTERNAL -> { openExternal(); true }
+            ACTION_TOGGLE_DESKTOP -> { toggleDesktopMode(); true }
+            ACTION_ADD_BOOKMARK -> { addCurrentPageBookmark(); true }
+            ACTION_CLEAR_SITE -> { clearCurrentSiteData(); true }
+            ACTION_SHOW_PRIVACY_SCORE -> { showPrivacyScoreDialog(); true }
+            ACTION_SHOW_DIAGNOSTICS -> { showDiagnosticsDialog(); true }
+            ACTION_OPEN_BOOKMARKS -> { startActivityForResult(Intent(this, BookmarksActivity::class.java), REQ_BOOKMARKS); true }
+            ACTION_OPEN_HISTORY -> { startActivityForResult(Intent(this, HistoryActivity::class.java), REQ_HISTORY); true }
+            ACTION_OPEN_DOWNLOADS -> { startActivity(Intent(this, VideoDownloadsActivity::class.java)); true }
+            ACTION_OPEN_VPN -> { startActivity(Intent(this, VpnActivity::class.java)); true }
+            ACTION_OPEN_V2RAY -> { startActivity(Intent(this, V2RayActivity::class.java)); true }
+            ACTION_DUPLICATE_TAB -> { currentTab()?.let { openNewTab(it.url, it.isIncognito, it.isDesktopMode) }; true }
+            ACTION_OPEN_URL_NEW_TAB -> { currentTab()?.let { openNewTab(it.url, it.isIncognito, it.isDesktopMode) }; true }
+            ACTION_SAVE_READING_LIST -> { currentTab()?.let { db.addReadingList(it.title, it.url); Toast.makeText(this, "Saved to reading list", Toast.LENGTH_SHORT).show() }; true }
+            ACTION_CLEAR_HISTORY -> { db.clearHistory(); Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show(); true }
+            ACTION_CLEAR_ALL_DATA -> { clearAllBrowsingData(); true }
+            ACTION_TOGGLE_DARK_MODE -> { toggleDarkMode(); true }
             else -> false
         }
         if (handled) setIntent(Intent(intent).setAction(null))
@@ -668,6 +732,39 @@ class MainActivity : AppCompatActivity() {
                     KEY_DATA_SAVER to true, KEY_NO_CACHE to false, KEY_OVERVIEW_MODE to true, KEY_ENABLE_ZOOM to true
                 ).forEach { (key, value) -> editor.putBoolean(key, value) }
             }
+            "maximum" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.STRICT)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to true, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_MEDIA_PERMISSIONS to true, KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true,
+                    KEY_THIRD_PARTY_COOKIES to true, KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true,
+                    KEY_FRESH_IDENTITY to true, KEY_HTTPS_FIRST to true, KEY_BLOCK_FILE_ACCESS to true, KEY_BLOCK_CONTENT_ACCESS to true,
+                    KEY_DISABLE_FORM_HELPERS to true, KEY_JAVASCRIPT to false, KEY_IMAGES to false, KEY_DOM_STORAGE to false,
+                    KEY_FAST_CACHE to false, KEY_DATA_SAVER to true, KEY_NO_CACHE to true, KEY_SHOW_SCROLLBARS to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+                editor.putInt(KEY_TEXT_ZOOM, 110)
+            }
+            "media" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.NORMAL)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to false, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_MEDIA_PERMISSIONS to false, KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true,
+                    KEY_THIRD_PARTY_COOKIES to true, KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true,
+                    KEY_JAVASCRIPT to true, KEY_IMAGES to true, KEY_DOM_STORAGE to true, KEY_MEDIA_GESTURE to false,
+                    KEY_FAST_CACHE to true, KEY_DATA_SAVER to false, KEY_NO_CACHE to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+            }
+            "developer" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.OFF)
+                mapOf(
+                    KEY_BLOCK_POPUPS to false, KEY_BLOCK_SOCIAL to false, KEY_BLOCK_GEOLOCATION to false,
+                    KEY_BLOCK_MEDIA_PERMISSIONS to false, KEY_BLOCK_WEB_NOTIFICATIONS to false, KEY_BLOCK_MIXED_CONTENT to false,
+                    KEY_THIRD_PARTY_COOKIES to true, KEY_STRIP_TRACKING to false, KEY_DNT to false, KEY_GPC to false,
+                    KEY_JAVASCRIPT to true, KEY_IMAGES to true, KEY_DOM_STORAGE to true, KEY_FAST_CACHE to false,
+                    KEY_DATA_SAVER to false, KEY_NO_CACHE to true, KEY_OVERVIEW_MODE to false, KEY_DESKTOP_DEFAULT to true,
+                    KEY_AUTO_STOP_LOADING to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+            }
             "reading" -> {
                 adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.NORMAL)
                 mapOf(
@@ -693,6 +790,28 @@ class MainActivity : AppCompatActivity() {
         applyGlobalSettingsToOpenTabs()
         currentTab()?.webView?.reload()
         Toast.makeText(this, "${name.replaceFirstChar { it.uppercase() }} preset applied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showDiagnosticsDialog() {
+        val tab = currentTab()
+        val host = tab?.let { Uri.parse(it.url).host }.orEmpty().ifBlank { "—" }
+        val message = buildString {
+            appendLine("Page: ${tab?.title.orEmpty().ifBlank { "New tab" }}")
+            appendLine("Host: $host")
+            appendLine("URL: ${tab?.url.orEmpty().ifBlank { "—" }}")
+            appendLine("HTTPS: ${tab?.url?.startsWith("https://") == true}")
+            appendLine("Blocked trackers: ${tab?.trackersBlockedThisPage ?: 0}")
+            appendLine("Fingerprint events: ${tab?.fingerprintBlockedThisPage ?: 0}")
+            appendLine("Ad-block level: ${adBlocker.level.name}")
+            appendLine("JavaScript: ${prefs.getBoolean(KEY_JAVASCRIPT, true)}")
+            appendLine("Images: ${prefs.getBoolean(KEY_IMAGES, true)}")
+            appendLine("3P cookies blocked: ${prefs.getBoolean(KEY_THIRD_PARTY_COOKIES, true)}")
+            appendLine("Tracking parameters stripped: ${prefs.getBoolean(KEY_STRIP_TRACKING, true)}")
+            appendLine("WebView version: ${android.webkit.WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"}")
+        }
+        AlertDialog.Builder(this).setTitle("Privacy & performance diagnostics").setMessage(message)
+            .setPositiveButton("Copy") { _, _ -> copyText("PrivBrowse diagnostics", message) }
+            .setNegativeButton(R.string.close, null).show()
     }
 
     private fun toggleDarkMode() {
@@ -1415,6 +1534,21 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Site cookies and storage cleared", Toast.LENGTH_SHORT).show()
     }
 
+    private fun clearAllBrowsingData() {
+        tabs.forEach { tab ->
+            tab.webView.clearCache(true)
+            tab.webView.clearHistory()
+        }
+        android.webkit.CookieManager.getInstance().removeAllCookies(null)
+        android.webkit.CookieManager.getInstance().flush()
+        android.webkit.WebStorage.getInstance().deleteAllData()
+        CookiePolicy.wipeOrigins(globalVisitedOrigins)
+        db.clearHistory()
+        db.clearNetworkLog()
+        globalVisitedOrigins.clear()
+        Toast.makeText(this, "Browser data cleared", Toast.LENGTH_SHORT).show()
+    }
+
     private fun hardReload() {
         currentTab()?.webView?.let { it.clearCache(true); it.reload() }
     }
@@ -1496,6 +1630,14 @@ class MainActivity : AppCompatActivity() {
     private fun copyText(label: String, value: String) {
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText(label, value))
+        if (prefs.getBoolean(KEY_AUTO_CLEAR_CLIPBOARD, false)) {
+            val expectedLabel = label
+            cookieWipeHandler.postDelayed({
+                if (cm.hasPrimaryClip() && cm.primaryClipDescription?.label?.toString() == expectedLabel) {
+                    cm.setPrimaryClip(ClipData.newPlainText("", ""))
+                }
+            }, 30_000L)
+        }
         Toast.makeText(this, "Copied $label", Toast.LENGTH_SHORT).show()
     }
 
@@ -1578,6 +1720,7 @@ class MainActivity : AppCompatActivity() {
         textToSpeech?.shutdown()
         cookieWipeTasks.values.forEach(cookieWipeHandler::removeCallbacks)
         cookieWipeTasks.clear()
+        cookieWipeHandler.removeCallbacksAndMessages(null)
         CookiePolicy.purgeConsentCookies(globalVisitedOrigins)
         if (prefs.getBoolean(KEY_CLEAR_CACHE_EXIT, false)) tabs.forEach { it.webView.clearCache(true) }
         if (prefs.getBoolean(KEY_CLEAR_PAGE_HISTORY_EXIT, false)) tabs.forEach { it.webView.clearHistory() }

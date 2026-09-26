@@ -70,6 +70,7 @@ class FeatureCenterActivity : AppCompatActivity() {
         engineSection()
         tabsSection()
         pageToolsSection()
+        workflowSection()
         aiSection()
         downloadsSection()
         privacyLifecycleSection()
@@ -138,7 +139,7 @@ class FeatureCenterActivity : AppCompatActivity() {
             setPadding(0, dp(4), 0, dp(7))
         })
         box.addView(TextView(this@FeatureCenterActivity).apply {
-            text = "100+ controls & shortcuts"
+            text = "Large searchable power-feature library"
             textSize = 11f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(color(R.color.accent_dark))
@@ -150,7 +151,7 @@ class FeatureCenterActivity : AppCompatActivity() {
         radius = dp(16).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
         val box = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), dp(10), dp(11), dp(10)) }
         search = EditText(this@FeatureCenterActivity).apply {
-            hint = "Search 100+ features"
+            hint = "Search any feature, setting or shortcut"
             setSingleLine(true)
             setPadding(dp(12), dp(3), dp(12), dp(3))
             addTextChangedListener(object : TextWatcher {
@@ -169,6 +170,9 @@ class FeatureCenterActivity : AppCompatActivity() {
             action("Strict privacy preset", "Use strict ad blocking plus stronger privacy defaults for new pages.") { openMain(MainActivity.ACTION_APPLY_PRESET, "strict") }
             action("Speed / data saver preset", "Reduce heavy assets and favor cache reuse for faster browsing on slower links.") { openMain(MainActivity.ACTION_APPLY_PRESET, "speed") }
             action("Reading focus preset", "Reader-friendly defaults for long articles, larger text and less visual noise.") { openMain(MainActivity.ACTION_APPLY_PRESET, "reading") }
+            action("Maximum privacy preset", "Lock down scripts, images, storage and tracking for sensitive browsing; some sites may break.") { openMain(MainActivity.ACTION_APPLY_PRESET, "maximum") }
+            action("Media-friendly preset", "Keep common media features usable while retaining the core tracking protections.") { openMain(MainActivity.ACTION_APPLY_PRESET, "media") }
+            action("Developer / debug preset", "Use fresh loads, desktop mode and relaxed page blocking for troubleshooting websites.") { openMain(MainActivity.ACTION_APPLY_PRESET, "developer") }
             action("One-tap cleanup", "Clear cookies, web storage and network diagnostics together.") { openMain(MainActivity.ACTION_PANIC) }
             action("AI privacy review", "Ask the configured AI to inspect the current page for visible privacy and tracking concerns.") { openAi("Review the current page for visible privacy risks, tracking signals, permission requests and data-collection concerns. Base the answer only on the page context and clearly separate observed facts from uncertainty.") }
             action("AI action plan", "Turn the current page into concrete next steps.") { openAi("Turn the current page into a practical action plan with prioritized next steps and any important caveats.") }
@@ -287,6 +291,48 @@ class FeatureCenterActivity : AppCompatActivity() {
         }
     }
 
+    private fun workflowSection() {
+        section("Pro workflow shortcuts") {
+            action("Share current page", "Send the current URL and title to another app.") { openMain(MainActivity.ACTION_SHARE_PAGE) }
+            action("Copy page URL", "Copy the current address with one tap.") { openMain(MainActivity.ACTION_COPY_URL) }
+            action("Copy page title", "Copy the current document title.") { openMain(MainActivity.ACTION_COPY_TITLE) }
+            action("Find in page", "Search within the currently loaded page.") { openMain(MainActivity.ACTION_FIND_IN_PAGE) }
+            action("Hard reload", "Clear this tab's cache and reload from the network.") { openMain(MainActivity.ACTION_HARD_RELOAD) }
+            action("Capture screenshot", "Share the visible browser page as a PNG.") { openMain(MainActivity.ACTION_CAPTURE_SCREENSHOT) }
+            action("Translate page", "Open the translation helper for the current URL.") { openMain(MainActivity.ACTION_TRANSLATE_PAGE) }
+            action("Listen to page", "Read the current page with Android text-to-speech.") { openMain(MainActivity.ACTION_LISTEN_PAGE) }
+            action("Copy readable text", "Extract visible page text to the clipboard.") { openMain(MainActivity.ACTION_COPY_PAGE_TEXT) }
+            action("Copy all links", "Extract the page's link URLs into one clipboard item.") { openMain(MainActivity.ACTION_COPY_PAGE_LINKS) }
+            action("Copy metadata", "Copy title, URL, description, canonical URL and language.") { openMain(MainActivity.ACTION_COPY_PAGE_METADATA) }
+            action("View page source", "Open a text snapshot of the current document source.") { openMain(MainActivity.ACTION_VIEW_SOURCE) }
+            action("Save web archive", "Save the current page as an MHT archive in app storage.") { openMain(MainActivity.ACTION_SAVE_ARCHIVE) }
+            action("Print / save PDF", "Use Android's print service for the current page.") { openMain(MainActivity.ACTION_PRINT_PDF) }
+            action("Open externally", "Hand the current URL to another installed browser/app.") { openMain(MainActivity.ACTION_OPEN_EXTERNAL) }
+            action("Toggle desktop site", "Switch the current tab between mobile and desktop user agents.") { openMain(MainActivity.ACTION_TOGGLE_DESKTOP) }
+            action("Add bookmark", "Save the current page to local bookmarks.") { openMain(MainActivity.ACTION_ADD_BOOKMARK) }
+            action("Clear site data", "Remove cookies and origin storage for the current site.") { openMain(MainActivity.ACTION_CLEAR_SITE) }
+            action("Privacy score", "Inspect the current page's HTTPS, tracker and fingerprint signals.") { openMain(MainActivity.ACTION_SHOW_PRIVACY_SCORE) }
+            action("Live diagnostics", "View current page, privacy, WebView and blocking diagnostics.") { openMain(MainActivity.ACTION_SHOW_DIAGNOSTICS) }
+            action("Tab manager", "Search, switch, close and restore tabs quickly.") { openMain(MainActivity.ACTION_OPEN_TAB_MANAGER) }
+            action("Bookmarks", "Open saved local bookmarks.") { openMain(MainActivity.ACTION_OPEN_BOOKMARKS) }
+            action("History", "Open local history and clear it when needed.") { openMain(MainActivity.ACTION_OPEN_HISTORY) }
+            action("Downloads", "Open the direct-media download queue.") { openMain(MainActivity.ACTION_OPEN_DOWNLOADS) }
+            action("VPN", "Open VPN discovery and diagnostics.") { openMain(MainActivity.ACTION_OPEN_VPN) }
+            action("V2Ray / Xray", "Open supported tunnel profiles and packet routing tools.") { openMain(MainActivity.ACTION_OPEN_V2RAY) }
+            action("Duplicate current tab", "Create a second tab with the same URL and desktop/private mode.") { openMain(MainActivity.ACTION_DUPLICATE_TAB) }
+            action("Open current URL in new tab", "Keep this tab and open its current address separately.") { openMain(MainActivity.ACTION_OPEN_URL_NEW_TAB) }
+            action("Save to reading list", "Save the current title and URL for later reading.") { openMain(MainActivity.ACTION_SAVE_READING_LIST) }
+            action("Clear history now", "Delete local browsing history without touching bookmarks.") { openMain(MainActivity.ACTION_CLEAR_HISTORY) }
+            action("Clear all browser data", "Wipe tabs' WebView cache/history, cookies, storage and local logs.") { openMain(MainActivity.ACTION_CLEAR_ALL_DATA) }
+            action("Quick dark mode", "Switch app and WebView appearance immediately.") { openMain(MainActivity.ACTION_TOGGLE_DARK_MODE) }
+            action("Quick search engine", "Change the default search provider without opening full settings.") { chooseSearchEngine() }
+            action("Quick home page", "Change the browser's startup/home URL.") { editHomePage() }
+            action("Quick text zoom", "Set the default WebView text zoom from 75% to 200%.") { editIntPref(MainActivity.KEY_TEXT_ZOOM, "Text zoom", listOf(75, 90, 100, 110, 125, 150, 175, 200)) }
+            action("Share settings summary", "Share a small, non-secret configuration summary for troubleshooting.") { shareDiagnostics() }
+            action("Capability map", "See which features are native, WebView-based or optional network modules.") { showCoverage() }
+        }
+    }
+
     private fun aiSection() {
         section("AI assistant") {
             togglePref("AI page context", "Allow the current page's readable text to be attached to prompts.", MainActivity.KEY_AI_CONTEXT, true)
@@ -339,6 +385,9 @@ class FeatureCenterActivity : AppCompatActivity() {
             togglePref("Clear when backgrounded", "Use the app's clear-on-exit/background lifecycle path.", MainActivity.KEY_CLEAR_ON_EXIT, false)
             togglePref("Private tabs no-cache", "Keep private tabs out of the normal HTTP cache.", MainActivity.KEY_INCOGNITO_NO_CACHE, true)
             togglePref("Prune transparency logs", "Remove old network-log entries after 30 days.", MainActivity.KEY_PRUNE_LOGS, true)
+            togglePref("Auto-clear copied text", "Erase PrivBrowse's copied clipboard content after 30 seconds when enabled.", MainActivity.KEY_AUTO_CLEAR_CLIPBOARD, false)
+            togglePref("Darken web pages", "Allow WebView/Android web darkening when dark mode is active.", MainActivity.KEY_DARKEN_PAGES, true)
+            togglePref("Focus address bar on launch", "Put the keyboard-ready cursor in the address bar after startup.", MainActivity.KEY_AUTO_FOCUS_ADDRESS, false)
             action("Clear cookies", "Clear all WebView cookies now.") { clearCookies() }
             action("Clear web storage", "Delete all WebView origin storage now.") { clearStorage() }
             action("Clear network log", "Delete all locally stored network transparency events.") { clearNetworkLog() }
@@ -453,7 +502,7 @@ class FeatureCenterActivity : AppCompatActivity() {
             sectionViews.firstOrNull { it.second === box }?.first?.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
             box.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
         }
-        countLabel.text = if (q.isBlank()) "$totalFeatures features" else "$visible features shown"
+        countLabel.text = if (q.isBlank()) "$totalFeatures features & shortcuts" else "$visible features shown"
     }
 
     private fun showHubMenu() {
@@ -564,6 +613,8 @@ class FeatureCenterActivity : AppCompatActivity() {
                     .putBoolean(MainActivity.KEY_SAVE_HISTORY, true)
                     .putBoolean(MainActivity.KEY_SHOW_SCROLLBARS, true)
                     .putBoolean(MainActivity.KEY_AUTO_FOCUS_ADDRESS, false)
+                    .putBoolean(MainActivity.KEY_AUTO_CLEAR_CLIPBOARD, false)
+                    .putBoolean(MainActivity.KEY_DARKEN_PAGES, true)
                     .putInt(MainActivity.KEY_TEXT_ZOOM, 100)
                     .putInt(MainActivity.KEY_DEFAULT_FONT_SIZE, 16)
                     .putInt(MainActivity.KEY_MIN_FONT_SIZE, 8)
@@ -593,7 +644,8 @@ class FeatureCenterActivity : AppCompatActivity() {
             MainActivity.KEY_AI_HISTORY, MainActivity.KEY_AI_COMPACT, MainActivity.KEY_AI_SHOW_MODEL, MainActivity.KEY_READER_MODE, MainActivity.KEY_TTS,
             MainActivity.KEY_TRANSLATE, MainActivity.KEY_READING_LIST, MainActivity.KEY_TEXT_EXTRACTION, MainActivity.KEY_VIDEO_DETECTION,
             MainActivity.KEY_DISABLE_SCREEN_CAPTURE, MainActivity.KEY_SAVE_HISTORY, MainActivity.KEY_DESKTOP_DEFAULT, MainActivity.KEY_KEEP_SCREEN_ON,
-            MainActivity.KEY_SHOW_SCROLLBARS, MainActivity.KEY_CLEAR_NETWORK_LOG_EXIT, MainActivity.KEY_PURGE_CONSENT_EXIT, MainActivity.KEY_AUTO_FOCUS_ADDRESS
+            MainActivity.KEY_SHOW_SCROLLBARS, MainActivity.KEY_CLEAR_NETWORK_LOG_EXIT, MainActivity.KEY_PURGE_CONSENT_EXIT, MainActivity.KEY_AUTO_FOCUS_ADDRESS,
+            MainActivity.KEY_AUTO_CLEAR_CLIPBOARD, MainActivity.KEY_DARKEN_PAGES
         )
         val json = JSONObject()
         keys.forEach { json.put(it, prefs.getBoolean(it, false)) }

@@ -68,8 +68,8 @@ class BrowserSettingsActivity : AppCompatActivity() {
         root.addView(toggleRow("Require a tap to play media", "Reduce unexpected audio/video autoplay.", prefs.getBoolean(MainActivity.KEY_MEDIA_GESTURE, true)) { setPref(MainActivity.KEY_MEDIA_GESTURE, it) })
         root.addView(toggleRow("Restore last session", "Reopen the tabs you had open when PrivBrowse was closed.", prefs.getBoolean(MainActivity.KEY_RESTORE_SESSION, true)) { setPref(MainActivity.KEY_RESTORE_SESSION, it) })
         root.addView(toggleRow("Open typed HTTP links securely", "Upgrade plain http:// input to https:// when possible.", prefs.getBoolean(MainActivity.KEY_HTTPS_FIRST, true)) { setPref(MainActivity.KEY_HTTPS_FIRST, it) })
-        root.addView(actionRow("Search engine", prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo")) { chooseSearchEngine() })
-        root.addView(actionRow("Home page", prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL)) { editHomePage() })
+        root.addView(actionRow("Search engine", prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo") ?: "DuckDuckGo") { chooseSearchEngine() })
+        root.addView(actionRow("Home page", prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL) ?: MainActivity.HOME_URL) { editHomePage() })
         root.addView(actionRow("Theme", if (prefs.getBoolean(MainActivity.KEY_DARK_MODE, false)) "Dark" else "Light") { toggleTheme() })
 
         root.addView(section("Tabs & data"), lp().apply { topMargin = dp(20) })
@@ -157,7 +157,7 @@ class BrowserSettingsActivity : AppCompatActivity() {
         setPadding(dp(2), 0, 0, dp(6))
     }
 
-    private fun toggleRow(title: String, subtitle: String, checked: Boolean, listener: (Boolean) -> Unit, lp: LinearLayout.LayoutParams = lp()): View {
+    private fun toggleRow(title: String, subtitle: String, checked: Boolean, lp: LinearLayout.LayoutParams = lp(), listener: (Boolean) -> Unit): View {
         val card = MaterialCardView(this).apply {
             radius = dp(14).toFloat()
             cardElevation = 0f

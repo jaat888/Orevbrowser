@@ -37,3 +37,16 @@ The presets are implemented using the app's existing preference keys and apply t
 - Feature Center count is 157.
 
 A full APK build was not executed in this packaging environment because the Android/Gradle SDK toolchain and the `libXray.aar` binary are not available here. GitHub Actions/Android Studio should be used for the final APK build.
+
+
+## 1.4.0 follow-up validation
+
+- Version bumped to `1.4.0-ultimate-feature-pack`.
+- Feature Center expanded to 200 feature controls/shortcuts.
+- Added direct MainActivity intent actions so the new shortcuts execute the underlying browser operation rather than merely opening a generic page-tools sheet.
+- Added maximum-privacy, media-friendly and developer/debug presets.
+- Added optional 30-second auto-clear for text copied through PrivBrowse.
+- Added live privacy/performance diagnostics and a one-tap all-data wipe workflow.
+- Static action/key/activity wiring audit passes without the Android SDK.
+
+The remaining external build dependency is the real `app/libs/libXray.aar` binary required by the Xray bridge. It is not present in the supplied source ZIP, so an end-to-end Android APK compile cannot be truthfully claimed from this packaging environment.

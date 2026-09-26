@@ -1,6 +1,6 @@
 # PrivBrowse
 
-Privacy-first Android browser built around Android WebView, with a deliberately clean everyday UI and a large searchable power-feature layer (150+ controls/shortcuts).
+Privacy-first Android browser built around Android WebView, with a deliberately clean everyday UI and a large searchable power-feature layer (200+ controls/shortcuts).
 
 ## What this build adds
 
@@ -34,3 +34,9 @@ The browser itself stays simple. The Feature Center is where the large set of co
 Use a normal Android Studio/Gradle Android environment with the Android SDK and the project's `libXray.aar` dependency available under `app/libs/`.
 
 This source package includes build fixes for the reported Kotlin errors and enables AGP BuildConfig generation. A full APK build was not executed in the packaging environment because the Android/Gradle toolchain and libXray AAR are not available there.
+
+## 1.4 Ultimate feature pack
+
+This revision adds a dedicated Pro Workflow area with direct one-tap actions for sharing/copying page data, find-in-page, hard reload, screenshot, translation, TTS, source/archiving, PDF/print, external handoff, desktop mode, bookmarks, site cleanup, privacy diagnostics, tabs, downloads and connectivity. It also adds maximum-privacy, media-friendly and developer/debug presets plus optional 30-second clipboard auto-clear.
+
+The feature catalog is designed around real app actions and existing WebView capabilities rather than placeholder buttons.
