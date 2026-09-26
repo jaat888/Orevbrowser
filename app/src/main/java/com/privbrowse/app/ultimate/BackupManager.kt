@@ -9,7 +9,7 @@ import com.privbrowse.app.ui.MainActivity
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.GZIPInputStream
+import java.util.zip.GZIPInputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,7 +95,7 @@ object BackupManager {
                 "string" -> editor.putString(key, values.optString(key))
                 "set" -> editor.putStringSet(key, (value as? JSONArray)?.let { a -> (0 until a.length()).mapNotNull { i -> a.optString(i, null) }.toSet() } ?: emptySet())
                 else -> when (value) {
-                    value === JSONObject.NULL -> editor.remove(key)
+                    JSONObject.NULL -> editor.remove(key)
                     is Boolean -> editor.putBoolean(key, value)
                     is Int -> editor.putInt(key, value)
                     is Long -> editor.putLong(key, value)

@@ -14,7 +14,7 @@ object DownloadSafetyScanner {
         if (!file.exists() || file.length() == 0L) return Result(false, "No local sample")
         val header = ByteArray(8)
         RandomAccessFile(file, "r").use { it.read(header) }
-        if (header.size >= 4 && header[0] == 0x7f && header[1] == 'E'.code.toByte() && header[2] == 'L'.code.toByte() && header[3] == 'F'.code.toByte()) {
+        if (header.size >= 4 && header[0] == 0x7f.toByte() && header[1] == 'E'.code.toByte() && header[2] == 'L'.code.toByte() && header[3] == 'F'.code.toByte()) {
             return Result(true, "ELF executable signature")
         }
         if (header.size >= 2 && header[0] == 'M'.code.toByte() && header[1] == 'Z'.code.toByte()) {

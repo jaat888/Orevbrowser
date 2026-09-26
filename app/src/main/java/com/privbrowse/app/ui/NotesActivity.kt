@@ -1,5 +1,6 @@
 package com.privbrowse.app.ui
 
+import com.privbrowse.app.R
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
