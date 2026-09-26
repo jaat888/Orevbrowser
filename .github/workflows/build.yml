@@ -28,14 +28,19 @@ jobs:
         with:
           go-version: "stable"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Locate preinstalled Android cmdline-tools
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          CMDLINE_TOOLS_BIN=$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 2 -type d -name bin | sort -V | tail -n 1)
+          test -n "$CMDLINE_TOOLS_BIN"
+          echo "Using: $CMDLINE_TOOLS_BIN"
+          echo "$CMDLINE_TOOLS_BIN" >> "$GITHUB_PATH"
 
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses > /dev/null || true
 
       - name: Install Android SDK/NDK
-        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;29.0.13846066"
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;27.2.12479018"
 
       - name: Switch to JDK 21 for libXray native build
         uses: actions/setup-java@v4
@@ -44,9 +49,8 @@ jobs:
           java-version: 21
 
       - name: Build official XTLS libXray v26.9.9
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.13846066
         run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
           rm -rf .native/libXray
           git clone --depth 1 --branch v26.9.9 https://github.com/XTLS/libXray.git .native/libXray
           export GOANDROIDAPI=21
