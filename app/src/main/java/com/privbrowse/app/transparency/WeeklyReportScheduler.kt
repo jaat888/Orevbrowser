@@ -27,7 +27,7 @@ object WeeklyReportScheduler {
             AlarmManager.RTC,
             System.currentTimeMillis() + AlarmManager.INTERVAL_DAY,
             AlarmManager.INTERVAL_DAY * 7,
-            pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            pendingIntent(context, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)!!
         )
     }
 

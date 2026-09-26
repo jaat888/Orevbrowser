@@ -2,7 +2,7 @@ package com.privbrowse.app.privacy
 
 /** Reader-mode page simplifier. It intentionally avoids network fetching or cloud parsing. */
 object ReaderMode {
-    const val SCRIPT = """
+    val SCRIPT = """
         (function() {
           try {
             var selectors = ['article', 'main', '[role="main"]', '.article', '.post-content', '.entry-content'];

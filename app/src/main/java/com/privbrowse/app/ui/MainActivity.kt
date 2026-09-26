@@ -323,7 +323,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyWebViewDarkMode(webView: WebView, dark: Boolean) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebSettingsCompat.setAlgorithmicDarkening(webView.settings, dark)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, dark)
         }
     }
 
@@ -615,7 +615,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openDetectedVideoDownloads() {
-        val urls = currentTab()?.detectedVideoUrls.orEmpty().filter(VideoDownloadsActivity::looksLikeVideo)
+        val urls = currentTab()?.detectedVideoUrls.orEmpty().filter { VideoDownloadsActivity.looksLikeVideo(it, null) }
         if (urls.isEmpty()) {
             Toast.makeText(this, "No direct/embedded video URL detected on this page.", Toast.LENGTH_SHORT).show()
             return

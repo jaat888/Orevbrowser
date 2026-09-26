@@ -66,7 +66,7 @@ class VideoDownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                     ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(
                         MimeTypeMap.getFileExtensionFromUrl(url).lowercase(Locale.US)
                     )
-                val ext = MimeTypeMap.getFileExtensionFromMimeType(type)
+                val ext = type?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
                     ?: MimeTypeMap.getFileExtensionFromUrl(url).takeIf { it.isNotBlank() }
                     ?: "mp4"
                 val safeExt = ext.lowercase(Locale.US).filter { it.isLetterOrDigit() }.take(8).ifBlank { "mp4" }

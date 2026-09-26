@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONTokener
 
 object VideoDetector {
-    const val SCRIPT = """
+    val SCRIPT = """
       (function(){
         var out=[]; var seen={};
         function add(u){ if(!u) return; try{u=new URL(u,location.href).href;}catch(e){return;} if(!/^https?:/i.test(u)) return; if(!seen[u]){seen[u]=1;out.push(u);} }

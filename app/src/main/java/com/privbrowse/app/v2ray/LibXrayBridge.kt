@@ -9,7 +9,7 @@ import org.json.JSONObject
 object LibXrayBridge {
     private val controller = object : DialerController {
         @Volatile var vpn: VpnService? = null
-        override fun protectFd(fd: Int): Boolean = vpn?.protect(fd) ?: false
+        override fun protectFd(fd: Long): Boolean = vpn?.protect(fd.toInt()) ?: false
     }
     @Volatile private var registered = false
 
