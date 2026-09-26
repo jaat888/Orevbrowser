@@ -3,7 +3,6 @@ package com.privbrowse.app.ui
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -11,15 +10,17 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.privbrowse.app.R
@@ -31,14 +32,28 @@ import org.json.JSONObject
 /**
  * Large searchable feature catalog. The main browser stays minimal while this
  * hub exposes power controls and shortcuts in small, scannable cards.
+ *
+ * Renders through a RecyclerView: with 200+ rows, building every card as a
+ * live View on the main thread in onCreate (the previous implementation)
+ * made this screen jank/hang/crash on lower-memory devices. Row data is
+ * cheap plain objects; only on-screen cards are ever inflated, and
+ * off-screen ViewHolders are recycled as you scroll.
  */
 class FeatureCenterActivity : AppCompatActivity() {
+
+    private sealed class Row {
+        data class Header(val title: String) : Row()
+        data class Action(val title: String, val subtitle: String, val onLabel: Boolean, val onClick: () -> Unit) : Row()
+        data class Toggle(val title: String, val subtitle: String, val key: String, val default: Boolean) : Row()
+    }
+
+    private class Section(val header: Row.Header, val items: MutableList<Row> = mutableListOf())
+
     private lateinit var prefs: SharedPreferences
-    private lateinit var rootList: LinearLayout
     private lateinit var search: EditText
     private lateinit var countLabel: TextView
-    private val featureViews = mutableListOf<Pair<String, View>>()
-    private val sectionViews = mutableListOf<Pair<TextView, LinearLayout>>()
+    private lateinit var adapter: FeatureAdapter
+    private val sections = mutableListOf<Section>()
     private var totalFeatures = 0
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
@@ -52,19 +67,7 @@ class FeatureCenterActivity : AppCompatActivity() {
     }
 
     private fun build() {
-        val outer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(color(R.color.background_light))
-        }
-        outer.addView(toolbar())
-        val scroll = ScrollView(this).apply { isFillViewport = true; clipToPadding = false }
-        rootList = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(4), dp(14), dp(28))
-        }
-        rootList.addView(hero())
-        rootList.addView(searchCard(), lp().apply { topMargin = dp(10) })
-
+        // Build the (cheap, view-free) data model for every section first.
         smartSection()
         privacySection()
         engineSection()
@@ -75,10 +78,27 @@ class FeatureCenterActivity : AppCompatActivity() {
         downloadsSection()
         privacyLifecycleSection()
         advancedSection()
+        wishlistSection()
 
-        scroll.addView(rootList)
-        outer.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        val outer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(color(R.color.background_light))
+        }
+        outer.addView(toolbar())
+
+        val recycler = RecyclerView(this).apply {
+            layoutManager = LinearLayoutManager(this@FeatureCenterActivity)
+            setPadding(dp(14), dp(4), dp(14), dp(28))
+            clipToPadding = false
+            setHasFixedSize(false)
+        }
+        adapter = FeatureAdapter()
+        recycler.adapter = adapter
+
+        outer.addView(recycler, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(outer)
+
+        adapter.setTopViews(hero(), searchCard())
         updateFilter("")
     }
 
@@ -122,6 +142,7 @@ class FeatureCenterActivity : AppCompatActivity() {
         strokeWidth = dp(1)
         strokeColor = color(R.color.divider)
         setCardBackgroundColor(color(R.color.surface_light))
+        layoutParams = lp()
         val box = LinearLayout(this@FeatureCenterActivity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(15), dp(14), dp(15), dp(14))
@@ -149,6 +170,7 @@ class FeatureCenterActivity : AppCompatActivity() {
 
     private fun searchCard(): View = MaterialCardView(this).apply {
         radius = dp(16).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
+        layoutParams = lp().apply { topMargin = dp(10) }
         val box = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), dp(10), dp(11), dp(10)) }
         search = EditText(this@FeatureCenterActivity).apply {
             hint = "Search any feature, setting or shortcut"
@@ -163,6 +185,8 @@ class FeatureCenterActivity : AppCompatActivity() {
         box.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
         addView(box)
     }
+
+    // ---- Section data builders (unchanged content/behavior, now data-only) ----
 
     private fun smartSection() {
         section("Smart presets & quick actions") {
@@ -188,7 +212,7 @@ class FeatureCenterActivity : AppCompatActivity() {
 
     private fun privacySection() {
         section("Privacy & tracking") {
-            toggle("Ad & tracker blocker", "Built-in blocking engine with Normal/Strict levels.") { cycleAdBlocker() }
+            toggleAction("Ad & tracker blocker", "Built-in blocking engine with Normal/Strict levels.") { cycleAdBlocker() }
             togglePref("Block pop-ups", "Stop automatic JavaScript windows.", MainActivity.KEY_BLOCK_POPUPS, true)
             togglePref("Block social embeds", "Reduce common social iframe/SDK embeds.", MainActivity.KEY_BLOCK_SOCIAL, true)
             togglePref("Block location prompts", "Deny website geolocation by default.", MainActivity.KEY_BLOCK_GEOLOCATION, true)
@@ -397,6 +421,14 @@ class FeatureCenterActivity : AppCompatActivity() {
         }
     }
 
+    private fun wishlistSection() {
+        section("Ultimate wishlist") {
+            action("Ultimate Feature Lab", "Tabs, gestures, live suggestions, privacy helpers, notes, side-by-side compare, per-site CSS/JS and more.") {
+                startActivity(Intent(this, FeatureLabActivity::class.java))
+            }
+        }
+    }
+
     private fun advancedSection() {
         section("Security, diagnostics & utilities") {
             action("Biometric app lock", "Enable/disable the app lock when supported by the device.") { openSecurity() }
@@ -414,96 +446,197 @@ class FeatureCenterActivity : AppCompatActivity() {
         }
     }
 
+    // ---- Row-building primitives (data only — no View is created here) ----
+
     private fun section(title: String, body: FeatureCenterActivity.() -> Unit) {
-        val header = TextView(this).apply {
-            text = title.uppercase()
-            textSize = 11.5f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(color(R.color.accent_dark))
-            setPadding(dp(2), dp(18), 0, dp(6))
-        }
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        sectionViews += header to box
-        rootList.addView(header)
-        rootList.addView(box)
+        sections += Section(Row.Header(title))
         body()
     }
 
     private fun togglePref(title: String, subtitle: String, key: String, default: Boolean) {
         totalFeatures++
-        val card = MaterialCardView(this).apply {
-            radius = dp(14).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
-            layoutParams = lp().apply { bottomMargin = dp(6) }
-        }
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(13), dp(10), dp(9), dp(10)) }
-        val copy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        copy.addView(TextView(this).apply {
-            text = title; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light))
-        })
-        copy.addView(TextView(this).apply {
-            text = subtitle; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); setPadding(0, dp(2), 0, 0); maxLines = 2
-        })
-        val sw = MaterialSwitch(this).apply {
-            isChecked = prefs.getBoolean(key, default)
-            setOnCheckedChangeListener { _, value ->
-                prefs.edit().putBoolean(key, value).apply()
-                if (key == MainActivity.KEY_DARK_MODE) recreate()
-                if (key == MainActivity.KEY_DISABLE_SCREEN_CAPTURE) {
-                    if (value) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-                }
-            }
-        }
-        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(sw)
-        card.addView(row)
-        addFeature(title, card)
+        sections.last().items += Row.Toggle(title, subtitle, key, default)
     }
 
-    private fun toggle(title: String, subtitle: String, action: () -> Unit) {
+    /** Visually styled like a toggle ("ON" label) but wired to a click action, not a bound pref. */
+    private fun toggleAction(title: String, subtitle: String, onClick: () -> Unit) {
         totalFeatures++
-        val card = featureCard(title, subtitle, action, switch = true)
-        addFeature(title, card)
+        sections.last().items += Row.Action(title, subtitle, onLabel = true, onClick = onClick)
     }
 
-    private fun action(title: String, subtitle: String, action: () -> Unit) {
+    private fun action(title: String, subtitle: String, onClick: () -> Unit) {
         totalFeatures++
-        addFeature(title, featureCard(title, subtitle, action, switch = false))
-    }
-
-    private fun featureCard(title: String, subtitle: String, action: () -> Unit, switch: Boolean): View = MaterialCardView(this).apply {
-        radius = dp(14).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light)); isClickable = true
-        layoutParams = lp().apply { bottomMargin = dp(6) }
-        setOnClickListener { action() }
-        val row = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(13), dp(11), dp(12), dp(11)) }
-        val copy = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL }
-        copy.addView(TextView(this@FeatureCenterActivity).apply { text = title; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light)) })
-        copy.addView(TextView(this@FeatureCenterActivity).apply { text = subtitle; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); maxLines = 2; setPadding(0, dp(2), 0, 0) })
-        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(TextView(this@FeatureCenterActivity).apply { text = if (switch) "ON" else "›"; textSize = if (switch) 10f else 24f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.accent_dark)) })
-        addView(row)
-    }
-
-    private fun addFeature(title: String, view: View) {
-        featureViews += title.lowercase() to view
-        sectionViews.lastOrNull()?.second?.addView(view)
+        sections.last().items += Row.Action(title, subtitle, onLabel = false, onClick = onClick)
     }
 
     private fun updateFilter(query: String) {
         val q = query.trim().lowercase()
+        val display = mutableListOf<Row>()
         var visible = 0
-        featureViews.forEach { (title, view) ->
-            val show = q.isBlank() || title.contains(q)
-            view.visibility = if (show) View.VISIBLE else View.GONE
-            if (show) visible++
+        for (sec in sections) {
+            val matched = if (q.isBlank()) sec.items else sec.items.filter { rowTitle(it).lowercase().contains(q) }
+            if (matched.isEmpty()) continue
+            display += sec.header
+            display += matched
+            visible += matched.size
         }
-        sectionViews.forEach { (_, box) ->
-            val any = (0 until box.childCount).any { box.getChildAt(it).visibility == View.VISIBLE }
-            // Header visibility is derived from the matching feature cards.
-            sectionViews.firstOrNull { it.second === box }?.first?.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
-            box.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
-        }
+        adapter.submit(display)
         countLabel.text = if (q.isBlank()) "$totalFeatures features & shortcuts" else "$visible features shown"
     }
+
+    private fun rowTitle(row: Row): String = when (row) {
+        is Row.Header -> row.title
+        is Row.Action -> row.title
+        is Row.Toggle -> row.title
+    }
+
+    // ---- RecyclerView adapter: builds a card View once per (recycled) holder, binds data cheaply ----
+
+    private inner class FeatureAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        private var items: List<Row> = emptyList()
+        private var heroView: View? = null
+        private var searchView: View? = null
+
+        fun setTopViews(hero: View, searchCard: View) {
+            heroView = hero
+            searchView = searchCard
+            notifyItemRangeInserted(0, 2)
+        }
+
+        fun submit(newItems: List<Row>) {
+            items = newItems
+            notifyDataSetChanged()
+        }
+
+        private val topCount get() = if (heroView != null) 2 else 0
+
+        override fun getItemCount(): Int = topCount + items.size
+
+        override fun getItemViewType(position: Int): Int {
+            if (position == 0 && heroView != null) return TYPE_HERO
+            if (position == 1 && heroView != null) return TYPE_SEARCH
+            val row = items[position - topCount]
+            return when (row) {
+                is Row.Header -> TYPE_HEADER
+                is Row.Toggle -> TYPE_TOGGLE
+                is Row.Action -> TYPE_ACTION
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
+            TYPE_HERO -> StaticHolder(frameHost(heroView!!))
+            TYPE_SEARCH -> StaticHolder(frameHost(searchView!!))
+            TYPE_HEADER -> HeaderHolder(makeHeaderView())
+            TYPE_TOGGLE -> ToggleHolder(makeToggleView())
+            else -> ActionHolder(makeActionView())
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (holder) {
+                is HeaderHolder -> holder.bind((items[position - topCount] as Row.Header).title)
+                is ToggleHolder -> holder.bind(items[position - topCount] as Row.Toggle)
+                is ActionHolder -> holder.bind(items[position - topCount] as Row.Action)
+                else -> Unit
+            }
+        }
+
+        // A plain View can only have one parent; wrap fixed top views (hero/search) so
+        // RecyclerView can attach/detach them across layout passes without crashing.
+        private fun frameHost(child: View): View = LinearLayout(this@FeatureCenterActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            (child.parent as? ViewGroup)?.removeView(child)
+            addView(child)
+        }
+    }
+
+    private class StaticHolder(view: View) : RecyclerView.ViewHolder(view)
+
+    private inner class HeaderHolder(view: TextView) : RecyclerView.ViewHolder(view) {
+        private val text = view
+        fun bind(title: String) { text.text = title.uppercase() }
+    }
+
+    private inner class ToggleHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val title = view.findViewWithTag<TextView>("title")
+        private val subtitle = view.findViewWithTag<TextView>("subtitle")
+        private val sw = view.findViewWithTag<MaterialSwitch>("switch")
+        fun bind(row: Row.Toggle) {
+            title.text = row.title
+            subtitle.text = row.subtitle
+            sw.setOnCheckedChangeListener(null)
+            sw.isChecked = prefs.getBoolean(row.key, row.default)
+            sw.setOnCheckedChangeListener { _, value ->
+                prefs.edit().putBoolean(row.key, value).apply()
+                if (row.key == MainActivity.KEY_DARK_MODE) recreate()
+                if (row.key == MainActivity.KEY_DISABLE_SCREEN_CAPTURE) {
+                    if (value) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
+    }
+
+    private inner class ActionHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val title = view.findViewWithTag<TextView>("title")
+        private val subtitle = view.findViewWithTag<TextView>("subtitle")
+        private val trailing = view.findViewWithTag<TextView>("trailing")
+        fun bind(row: Row.Action) {
+            title.text = row.title
+            subtitle.text = row.subtitle
+            trailing.text = if (row.onLabel) "ON" else "›"
+            trailing.textSize = if (row.onLabel) 10f else 24f
+            itemView.setOnClickListener { row.onClick() }
+        }
+    }
+
+    private fun makeHeaderView(): TextView = TextView(this).apply {
+        textSize = 11.5f
+        setTypeface(typeface, android.graphics.Typeface.BOLD)
+        setTextColor(color(R.color.accent_dark))
+        setPadding(dp(2), dp(18), 0, dp(6))
+    }
+
+    private fun cardShell(): Pair<MaterialCardView, LinearLayout> {
+        val card = MaterialCardView(this).apply {
+            radius = dp(14).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
+            layoutParams = lp().apply { bottomMargin = dp(6) }
+            isClickable = true
+        }
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(13), dp(10), dp(9), dp(10)) }
+        card.addView(row)
+        return card to row
+    }
+
+    private fun makeToggleView(): View {
+        val (card, row) = cardShell()
+        val copy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        copy.addView(TextView(this).apply { tag = "title"; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light)) })
+        copy.addView(TextView(this).apply { tag = "subtitle"; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); setPadding(0, dp(2), 0, 0); maxLines = 2 })
+        val sw = MaterialSwitch(this).apply { tag = "switch" }
+        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(sw)
+        return card
+    }
+
+    private fun makeActionView(): View {
+        val (card, row) = cardShell()
+        row.setPadding(dp(13), dp(11), dp(12), dp(11))
+        val copy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        copy.addView(TextView(this).apply { tag = "title"; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light)) })
+        copy.addView(TextView(this).apply { tag = "subtitle"; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); maxLines = 2; setPadding(0, dp(2), 0, 0) })
+        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(TextView(this).apply { tag = "trailing"; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.accent_dark)) })
+        return card
+    }
+
+    private companion object {
+        const val TYPE_HERO = 0
+        const val TYPE_SEARCH = 1
+        const val TYPE_HEADER = 2
+        const val TYPE_TOGGLE = 3
+        const val TYPE_ACTION = 4
+    }
+
+    // ---- Menu / dialog / utility actions (unchanged) ----
 
     private fun showHubMenu() {
         AlertDialog.Builder(this).setTitle("Feature Center")

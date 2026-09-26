@@ -1,27 +1,31 @@
-# PrivBrowse 1.4.0 — Feature Matrix
+# PrivBrowse 1.5.0 — Feature Matrix
 
-## Scope
+This revision treats the supplied wishlist as a complete implementation audit rather than a partial feature-demo list. The **Ultimate Feature Lab** exposes the new functionality while the existing **Feature Center** retains the broader browser/privacy/AI catalogue.
 
-This build keeps the everyday browser UI compact and moves advanced controls into a searchable Feature Center. The center currently exposes **200 feature controls/shortcuts** across privacy, WebView behavior, tabs, page tools, AI, downloads/connectivity, lifecycle, and security/diagnostics.
+## Feature families
 
-## Feature groups
-
-| Group | Examples |
+| Family | Included |
 |---|---|
-| Smart presets & AI quick actions | Balanced/Strict/Maximum privacy presets, Speed/Data Saver, Reading Focus, Media Friendly and Developer presets, AI privacy review, action plan, table extraction, bilingual summary, verify-needed checklist |
-| Privacy & tracking | Ad/tracker levels, pop-up blocking, social-embed blocking, GPC, Do Not Track, tracking-parameter stripping, HTTPS-first, cookie controls, per-site controls, privacy grade, transparency log, panic wipe |
-| Browser engine & performance | JavaScript, images, DOM storage, media gesture, Safe Browsing, mixed-content blocking, file/content access, form helpers, cache modes, zoom, viewport, overview mode, stalled-load timeout, desktop-by-default, scrollbars, font sizing |
-| Tabs & navigation | Private tabs, private link opens, session restore, recently closed tabs, close-all confirmation, auto reader, compact tab strip, scroll restore, external scheme handoff, history switch, tab manager, bookmarks, reading list |
-| Page tools | Find in page, reader mode, translation, text extraction, TTS, direct copy/share shortcuts, source viewer, MHT archive, screenshot share, PDF/print, hard reload, external browser, desktop mode |
-| AI | Provider/model setup, model discovery, custom model IDs, custom OpenAI-compatible endpoint, secure API-key storage, page context, local chat history, prompt profiles, 20 one-tap page prompts, copy/share/speak, retry/stop, clipboard input, chat export |
-| Downloads & connectivity | Direct media detector, download confirmation, download queue, VPN discovery, V2Ray/Xray, connection diagnostics, network activity |
-| Lifecycle & cleanup | Cache/cookie/storage/history cleanup on exit, network-log cleanup, consent-cookie purge, clear-on-background behavior, private-tab no-cache, log pruning, auto-clear clipboard, import/export/reset settings |
-| Security & diagnostics | Biometric lock, secure vault routing, privacy reports, diagnostics, settings summary, panic flow, capability map |
+| Tabs | Grid + search, live thumbnails, list/grid switch, groups/colors, vertical rail, pinning, duplicate, preview, recently closed, auto-close, self-destruct, biometric vault, random close, multi-window and split compare |
+| Search | Live suggestions, bangs, custom keywords, recent/frequent dashboard, search-engine comparison, calculator/unit/currency answers and QR URL sharing |
+| Privacy | Ghost mode, randomized web geolocation, site isolation controls, tracker/ad blocking, per-page score, weekly report, UID network accounting, screenshot protection, clipboard wipe, guest/profile separation, Wi-Fi warning, leak tests and VPN fail-closed mode |
+| Content/media | PDF annotation, PiP, gallery, TTS, media speed, audio-only mode, ad-skip attempt, subtitles, long screenshot, reverse-image handoff, background audio |
+| Productivity | Sticky overlay notes, web clipper, dashboard, RSS, event/calendar helper, compare/diff, translation, meeting-link detection, bookmark todos and print-friendly extraction |
+| AI | Floating page AI bubble, AI summary/actions, provider/model workspace, Q&A history, image alt-text, metadata/tag assistance and safe non-silent form/privacy behavior |
+| Downloads | Persistent queue, resume, category folders, speed limiter, heuristic safety scan and optional external magnet/torrent handoff |
+| Alerts | Price/page/keyword watchers with local alarms + notifications |
+| Accessibility/customization | Dyslexia font, high contrast, one-handed, large touch targets, per-site CSS/JS, icon aliases, media notification controls, gesture editor and bundled/imported themes |
+| Sync/backup | Offline QR tabs, Android local-share transfer, daily local backup, typed compressed import/export |
+| Power-user | Inspect/source/DOM tools, user-agent switching, per-tab diagnostics, VPN/Xray tools and Ctrl+K command palette |
+| Stability | Crash logs, session recovery, tab hibernation, retry pages, pull-refresh and CI build workflow |
 
-## AI providers
+## Engineering rules used in this revision
 
-The AI workspace includes Groq, OpenRouter, OpenAI, Gemini, Anthropic and a configurable OpenAI-compatible provider. The user supplies and controls provider API credentials; PrivBrowse does not ship a shared API key.
+1. No wishlist control is represented as a fake “coming soon” button.
+2. When Android WebView cannot expose a requested low-level capability, the UI uses the nearest honest Android/platform flow and the exact boundary is written in `WISHLIST_IMPLEMENTATION.md`.
+3. Privacy-sensitive workflows stay local/offline when possible: QR generation is local, notes/bookmarks/todos are local, backups are local, and provider API keys remain user-controlled.
+4. Existing browser behavior is preserved rather than replaced with a parallel browser engine.
 
-## Implementation notes
+## Build verification
 
-Some features are WebView-backed because PrivBrowse uses Android WebView rather than replacing the Android browser engine. Full Chrome/Brave desktop-extension ecosystems cannot be reproduced by settings alone; the Feature Center labels the boundary instead of pretending those capabilities are native.
+The repository contains a CI workflow at `.github/workflows/android.yml` that runs `lintDebug` and `assembleDebug` on every push/PR. This packaging container lacks the Android SDK/Gradle toolchain and the native `libXray.aar`, so the final ZIP is statically audited and ZIP-validated here rather than falsely reported as locally APK-built.

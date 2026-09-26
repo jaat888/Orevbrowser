@@ -26,6 +26,11 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.widget.EditText
+import android.widget.ListView
+import android.widget.ArrayAdapter
+import android.widget.PopupWindow
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -59,8 +64,19 @@ import com.privbrowse.app.privacy.BiometricLock
 import com.privbrowse.app.privacy.DomainPrivacyStore
 import com.privbrowse.app.privacy.FingerprintRandomizer
 import com.privbrowse.app.privacy.ReaderMode
+import com.privbrowse.app.privacy.SiteCustomizationStore
 import com.privbrowse.app.panic.PanicManager
 import com.privbrowse.app.video.VideoDetector
+import com.privbrowse.app.ultimate.UltimateFeatureStore
+import com.privbrowse.app.ultimate.UltimateTools
+import com.privbrowse.app.ultimate.QrExport
+import com.privbrowse.app.ultimate.QrTransferActivity
+import com.privbrowse.app.ultimate.FloatingBubbleService
+import com.privbrowse.app.ultimate.WatchActivity
+import com.privbrowse.app.ultimate.DownloadQueueActivity
+import com.privbrowse.app.ultimate.DownloadQueueService
+import com.privbrowse.app.ultimate.PdfAnnotateActivity
+import com.privbrowse.app.ultimate.PrivacyDashboardActivity
 
 class MainActivity : AppCompatActivity() {
 
@@ -143,6 +159,35 @@ class MainActivity : AppCompatActivity() {
         const val KEY_PURGE_CONSENT_EXIT = "purge_consent_exit"
         const val KEY_AUTO_FOCUS_ADDRESS = "auto_focus_address"
         const val KEY_AUTO_CLEAR_CLIPBOARD = "auto_clear_clipboard"
+        const val KEY_AUTO_CLEAR_CLIPBOARD_SECONDS = "auto_clear_clipboard_seconds"
+        const val KEY_AUTO_CLOSE_INACTIVE_HOURS = "auto_close_inactive_hours"
+        const val KEY_SELF_DESTRUCT_TABS = "self_destruct_tabs"
+        const val KEY_SELF_DESTRUCT_MINUTES = "self_destruct_minutes"
+        const val KEY_EDGE_GESTURES = "edge_gestures"
+        const val KEY_LIVE_SUGGESTIONS = "live_suggestions"
+        const val KEY_CLIPBOARD_PROMPT = "clipboard_prompt"
+        const val KEY_BANG_COMMANDS = "bang_commands"
+        const val KEY_SEARCH_KEYWORDS = "search_keywords"
+        const val KEY_GHOST_MODE = "ghost_mode"
+        const val KEY_FAKE_GPS = "fake_gps"
+        const val KEY_DOH_PROVIDER = "doh_provider"
+        const val KEY_VAULT_LOCKED = "vault_locked"
+        const val KEY_DYSLEXIA_FONT = "dyslexia_font"
+        const val KEY_HIGH_CONTRAST = "high_contrast"
+        const val KEY_LARGE_TOUCH = "large_touch"
+        const val KEY_FULL_PAGE_SCREENSHOT = "full_page_screenshot"
+        const val KEY_MEDIA_SPEED = "media_speed"
+        const val KEY_AUDIO_ONLY = "audio_only"
+        const val KEY_AUTO_AD_SKIP = "auto_ad_skip"
+        const val KEY_AI_JUNK_STRIP = "ai_junk_strip"
+        const val KEY_BACKGROUND_MEDIA = "background_media"
+        const val KEY_WIFI_WARNING = "wifi_warning"
+        const val KEY_NEW_TAB_DASHBOARD = "new_tab_dashboard"
+        const val KEY_MAGNET_SUPPORT = "magnet_support"
+        const val KEY_VAULT_UNLOCKED = "vault_unlocked"
+        const val KEY_SESSION_JSON = "session_snapshot_json"
+        const val KEY_RECENTLY_CLOSED_JSON = "recently_closed_json"
+
 
         const val ACTION_OPEN_SITE_CONTROLS = "com.privbrowse.app.action.SITE_CONTROLS"
         const val ACTION_OPEN_TAB_MANAGER = "com.privbrowse.app.action.TAB_MANAGER"
@@ -181,6 +226,47 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_CLEAR_HISTORY = "com.privbrowse.app.action.CLEAR_HISTORY"
         const val ACTION_CLEAR_ALL_DATA = "com.privbrowse.app.action.CLEAR_ALL_DATA"
         const val ACTION_TOGGLE_DARK_MODE = "com.privbrowse.app.action.TOGGLE_DARK_MODE"
+        const val ACTION_OPEN_FEATURE_LAB = "com.privbrowse.app.action.FEATURE_LAB"
+        const val ACTION_OPEN_LEAK_TESTS = "com.privbrowse.app.action.LEAK_TESTS"
+        const val ACTION_GUEST_CLEANUP = "com.privbrowse.app.action.GUEST_CLEANUP"
+        const val ACTION_GALLERY = "com.privbrowse.app.action.GALLERY"
+        const val ACTION_SUBTITLE_DOWNLOAD = "com.privbrowse.app.action.SUBTITLE_DOWNLOAD"
+        const val ACTION_REVERSE_IMAGE = "com.privbrowse.app.action.REVERSE_IMAGE"
+        const val ACTION_NOTES = "com.privbrowse.app.action.NOTES"
+        const val ACTION_STICKY_NOTE = "com.privbrowse.app.action.STICKY_NOTE"
+        const val ACTION_PRINT_FRIENDLY = "com.privbrowse.app.action.PRINT_FRIENDLY"
+        const val ACTION_CALENDAR_EVENT = "com.privbrowse.app.action.CALENDAR_EVENT"
+        const val ACTION_MEDIA_TOOLS = "com.privbrowse.app.action.MEDIA_TOOLS"
+        const val ACTION_COMPARE_SEARCH = "com.privbrowse.app.action.COMPARE_SEARCH"
+        const val ACTION_QR_TRANSFER = "com.privbrowse.app.action.QR_TRANSFER"
+        const val ACTION_MULTI_WINDOW = "com.privbrowse.app.action.MULTI_WINDOW"
+        const val ACTION_FLOATING_BUBBLE = "com.privbrowse.app.action.FLOATING_BUBBLE"
+        const val ACTION_STOP_FLOATING_BUBBLE = "com.privbrowse.app.action.STOP_FLOATING_BUBBLE"
+        const val ACTION_WATCHES = "com.privbrowse.app.action.WATCHES"
+        const val ACTION_DOWNLOAD_QUEUE = "com.privbrowse.app.action.DOWNLOAD_QUEUE"
+        const val ACTION_PDF_ANNOTATE = "com.privbrowse.app.action.PDF_ANNOTATE"
+        const val ACTION_PRIVACY_DASHBOARD = "com.privbrowse.app.action.PRIVACY_DASHBOARD"
+        const val ACTION_ENTER_PIP = "com.privbrowse.app.action.ENTER_PIP"
+        const val ACTION_RANDOM_CLOSE = "com.privbrowse.app.action.RANDOM_CLOSE"
+        const val ACTION_VAULT_TAB = "com.privbrowse.app.action.VAULT_TAB"
+        const val ACTION_BACKGROUND_AUDIO = "com.privbrowse.app.action.BACKGROUND_AUDIO"
+        const val ACTION_HOME_DASHBOARD = "com.privbrowse.app.action.HOME_DASHBOARD"
+        const val ACTION_PROFILE_ALIAS = "com.privbrowse.app.action.PROFILE_ALIAS"
+        const val ACTION_UNLOCK_VAULT = "com.privbrowse.app.action.UNLOCK_VAULT"
+        const val ACTION_IMPORT_TABS = "com.privbrowse.app.action.IMPORT_TABS"
+        const val ACTION_SHARE_TABS_LOCAL = "com.privbrowse.app.action.SHARE_TABS_LOCAL"
+        const val ACTION_PROFILES = "com.privbrowse.app.action.PROFILES"
+        const val ACTION_BUBBLE_OFF = "com.privbrowse.app.action.BUBBLE_OFF"
+        const val ACTION_VOICE_COMMAND = "com.privbrowse.app.action.VOICE_COMMAND"
+        const val ACTION_QR_CURRENT_URL = "com.privbrowse.app.action.QR_CURRENT_URL"
+        const val ACTION_EMAIL_ALIAS = "com.privbrowse.app.action.EMAIL_ALIAS"
+        const val ACTION_CALC_CONVERTER = "com.privbrowse.app.action.CALC_CONVERTER"
+        const val ACTION_JOIN_VIDEO_CALL = "com.privbrowse.app.action.JOIN_VIDEO_CALL"
+        const val ACTION_AI_IMAGES = "com.privbrowse.app.action.AI_IMAGES"
+        const val ACTION_THEME_EDITOR = "com.privbrowse.app.action.THEME_EDITOR"
+        const val ACTION_GESTURE_EDITOR = "com.privbrowse.app.action.GESTURE_EDITOR"
+        const val ACTION_CRASH_LOG = "com.privbrowse.app.action.CRASH_LOG"
+        const val ACTION_WEB_CLIPPER = "com.privbrowse.app.action.WEB_CLIPPER"
         const val EXTRA_PRESET = "com.privbrowse.app.extra.PRESET"
 
         private const val REQ_BOOKMARKS = 100
@@ -203,6 +289,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var webViewContainer: FrameLayout
     private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
     private lateinit var tabStrip: RecyclerView
+    private lateinit var tabStripVertical: RecyclerView
     private lateinit var btnBack: ImageButton
     private lateinit var btnForward: ImageButton
     private lateinit var btnRefresh: ImageButton
@@ -210,6 +297,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnTools: ImageButton
     private lateinit var btnTabs: TextView
     private lateinit var btnMenu: ImageButton
+    private lateinit var bottomNav: View
+    private var mediaPermissionsRevokedForSession = false
+    private var clipboardManager: ClipboardManager? = null
+    private val clipboardListener = ClipboardManager.OnPrimaryClipChangedListener { if (!urlBar.hasFocus() && prefs.getBoolean(KEY_CLIPBOARD_PROMPT, true)) offerClipboardLink() }
 
     private lateinit var adBlocker: AdBlocker
     private lateinit var db: DbHelper
@@ -225,15 +316,24 @@ class MainActivity : AppCompatActivity() {
     private val cookieWipeTasks = mutableMapOf<Long, Runnable>()
     private val loadTimeoutTasks = mutableMapOf<Long, Runnable>()
     private val recentlyClosed = ArrayDeque<ClosedTabSnapshot>()
+    private val selfDestructTasks = mutableMapOf<Long, Runnable>()
+    private val autoCloseTasks = mutableMapOf<Long, Runnable>()
+    private var suggestionsPopup: PopupWindow? = null
     private var biometricPromptShowing = false
+    private var vaultUnlocked = false
     private var restoredSession = false
     private var textToSpeech: TextToSpeech? = null
     private var pendingWebPermissionRequest: android.webkit.PermissionRequest? = null
+    private var aiBubble: TextView? = null
     private val REQ_WEB_MEDIA = 610
 
     private data class ClosedTabSnapshot(val title: String, val url: String, val incognito: Boolean, val desktop: Boolean)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (Build.VERSION.SDK_INT >= 28) {
+            val profile = getSharedPreferences("privbrowse_profile", MODE_PRIVATE).getString("active_profile", "personal") ?: "personal"
+            runCatching { android.webkit.WebView.setDataDirectorySuffix(profile) }
+        }
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
         AppCompatDelegate.setDefaultNightMode(
             if (prefs.getBoolean(KEY_DARK_MODE, false))
@@ -247,14 +347,27 @@ class MainActivity : AppCompatActivity() {
 
         adBlocker = AdBlocker(this)
         db = DbHelper(this)
+        com.privbrowse.app.ultimate.NetworkUsageRecorder.snapshot(this)
+        if (com.privbrowse.app.ultimate.DownloadQueueStore.list(this).any { it.status == "queued" || it.status == "downloading" }) {
+            androidx.core.content.ContextCompat.startForegroundService(this,Intent(this,com.privbrowse.app.ultimate.DownloadQueueService::class.java))
+        }
 
         bindViews()
+        applyImportedTheme()
         setupTabStrip()
         setupToolbar()
+        loadRecentlyClosed()
+        setupClipboardMonitor()
+
+        if (prefs.getBoolean(KEY_CLIPBOARD_PROMPT, true)) {
+            urlBar.postDelayed({ offerClipboardLink() }, 650)
+        }
 
         // Phase 3: Weekly Privacy Report — re-registering an existing alarm
         // is a no-op, so this is safe to call on every launch.
         WeeklyReportScheduler.scheduleIfNeeded(this)
+        if (!UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_GHOST, false)) com.privbrowse.app.ultimate.BackupReceiver.schedule(this)
+        com.privbrowse.app.ultimate.CleanupReceiver.schedule(this)
         requestNotificationPermissionIfNeeded()
         if (prefs.getBoolean(KEY_PRUNE_LOGS, true)) db.pruneNetworkLog(THIRTY_DAYS_MILLIS)
         if (prefs.getBoolean(KEY_KEEP_SCREEN_ON, false)) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -266,6 +379,46 @@ class MainActivity : AppCompatActivity() {
         if (!restoredSession) {
             restoreSessionOrOpenInitial()
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_K && event.isCtrlPressed) {
+            showCommandPalette()
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun showCommandPalette() {
+        val labels = arrayOf(
+            "New tab", "Tab manager", "Private tab", "Page tools", "Bookmarks",
+            "History", "Downloads", "Notes", "Compare search engines", "Privacy score",
+            "Feature Lab", "QR current URL", "Screenshot", "Back", "Forward", "Refresh"
+        )
+        AlertDialog.Builder(this)
+            .setTitle("Command palette (Ctrl+K)")
+            .setItems(labels) { _, which ->
+                when (which) {
+                    0 -> openNewTab(getHomeUrl())
+                    1 -> showTabManager()
+                    2 -> openNewTab(getHomeUrl(), incognito = true)
+                    3 -> showPageTools()
+                    4 -> startActivityForResult(Intent(this, BookmarksActivity::class.java), REQ_BOOKMARKS)
+                    5 -> startActivityForResult(Intent(this, HistoryActivity::class.java), REQ_HISTORY)
+                    6 -> startActivity(Intent(this, VideoDownloadsActivity::class.java))
+                    7 -> openNotes()
+                    8 -> compareSearchEngines()
+                    9 -> showPrivacyScoreDialog()
+                    10 -> startActivity(Intent(this, FeatureLabActivity::class.java))
+                    11 -> showCurrentUrlQr()
+                    12 -> capturePageScreenshot()
+                    13 -> currentTab()?.webView?.goBack()
+                    14 -> currentTab()?.webView?.goForward()
+                    15 -> currentTab()?.webView?.reload()
+                }
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
     }
 
     private fun resolveInitialUrl(intent: Intent?): String {
@@ -323,39 +476,191 @@ class MainActivity : AppCompatActivity() {
             ACTION_CLEAR_HISTORY -> { db.clearHistory(); Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show(); true }
             ACTION_CLEAR_ALL_DATA -> { clearAllBrowsingData(); true }
             ACTION_TOGGLE_DARK_MODE -> { toggleDarkMode(); true }
+            ACTION_OPEN_FEATURE_LAB -> { startActivity(Intent(this, FeatureLabActivity::class.java)); true }
+            ACTION_OPEN_LEAK_TESTS -> { openLeakTests(); true }
+            ACTION_GUEST_CLEANUP -> { guestCleanup(); true }
+            ACTION_GALLERY -> { openPageGallery(); true }
+            ACTION_SUBTITLE_DOWNLOAD -> { downloadSubtitleCandidate(); true }
+            ACTION_REVERSE_IMAGE -> { reverseImageSearch(); true }
+            ACTION_NOTES -> { openNotes(); true }
+            ACTION_STICKY_NOTE -> { showStickyNoteOverlay(); true }
+            ACTION_PRINT_FRIENDLY -> { openPrintFriendly(); true }
+            ACTION_CALENDAR_EVENT -> { addCalendarEvent(); true }
+            ACTION_MEDIA_TOOLS -> { showMediaTools(); true }
+            ACTION_COMPARE_SEARCH -> { compareSearchEngines(); true }
+            ACTION_QR_TRANSFER -> { showQrTransfer(); true }
+            ACTION_MULTI_WINDOW -> { openSecondWindow(); true }
+            ACTION_FLOATING_BUBBLE -> { startFloatingBubble(); true }
+            ACTION_STOP_FLOATING_BUBBLE -> { stopService(Intent(this, FloatingBubbleService::class.java)); true }
+            ACTION_WATCHES -> { startActivity(Intent(this, WatchActivity::class.java)); true }
+            ACTION_DOWNLOAD_QUEUE -> { startActivity(Intent(this, DownloadQueueActivity::class.java)); true }
+            ACTION_PDF_ANNOTATE -> { startActivity(Intent(this, PdfAnnotateActivity::class.java)); true }
+            ACTION_PRIVACY_DASHBOARD -> { startActivity(Intent(this, PrivacyDashboardActivity::class.java)); true }
+            ACTION_ENTER_PIP -> { enterBrowserPictureInPicture(); true }
+            ACTION_RANDOM_CLOSE -> { closeTabsRandomly(); true }
+            ACTION_VAULT_TAB -> { authenticateVaultThenOpen(); true }
+            ACTION_BACKGROUND_AUDIO -> { startBackgroundAudio(); true }
+            ACTION_HOME_DASHBOARD -> { startActivity(Intent(this, com.privbrowse.app.ultimate.DashboardActivity::class.java)); true }
+            ACTION_UNLOCK_VAULT -> { authenticateVault(); true }
+            ACTION_IMPORT_TABS -> { importTabs(intent?.getStringExtra("payload").orEmpty()); true }
+            ACTION_SHARE_TABS_LOCAL -> { shareTabsLocal(); true }
+            ACTION_PROFILES -> { startActivity(Intent(this, com.privbrowse.app.ultimate.ProfileActivity::class.java)); true }
+            ACTION_VOICE_COMMAND -> { startVoiceCommand(); true }
+            ACTION_QR_CURRENT_URL -> { showCurrentUrlQr(); true }
+            ACTION_EMAIL_ALIAS -> { showEmailAlias(); true }
+            ACTION_CALC_CONVERTER -> { showCalculatorConverter(); true }
+            ACTION_JOIN_VIDEO_CALL -> { joinDetectedMeeting(); true }
+            ACTION_AI_IMAGES -> { aiImageAltText(); true }
+            ACTION_THEME_EDITOR -> { startActivity(Intent(this, com.privbrowse.app.ultimate.ThemeActivity::class.java)); true }
+            ACTION_GESTURE_EDITOR -> { startActivity(Intent(this, com.privbrowse.app.ultimate.GestureEditorActivity::class.java)); true }
+            ACTION_CRASH_LOG -> { exportCrashLog(); true }
+            ACTION_WEB_CLIPPER -> { openWebClipper(); true }
             else -> false
         }
         if (handled) setIntent(Intent(intent).setAction(null))
         return handled
     }
 
+    private fun setupClipboardMonitor() {
+        clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager?.addPrimaryClipChangedListener(clipboardListener)
+    }
+
+    private fun loadRecentlyClosed() {
+        val array = runCatching { org.json.JSONArray(prefs.getString(KEY_RECENTLY_CLOSED_JSON, "[]")) }.getOrElse { org.json.JSONArray() }
+        recentlyClosed.clear()
+        for (i in 0 until array.length()) {
+            val o = array.optJSONObject(i) ?: continue
+            val url = o.optString("url")
+            if (url.startsWith("http://") || url.startsWith("https://")) recentlyClosed.addLast(ClosedTabSnapshot(o.optString("title"), url, o.optBoolean("incognito", false), o.optBoolean("desktop", false)))
+        }
+    }
+
+    private fun persistRecentlyClosed() {
+        val array = org.json.JSONArray()
+        recentlyClosed.take(MAX_REOPENED).forEach { item -> array.put(org.json.JSONObject().apply { put("title", item.title); put("url", item.url); put("incognito", item.incognito); put("desktop", item.desktop) }) }
+        prefs.edit().putString(KEY_RECENTLY_CLOSED_JSON, array.toString()).apply()
+    }
+
+    private fun updateAiBubble() {
+        aiBubble?.let { webViewContainer.removeView(it) }
+        aiBubble = null
+        val tab = currentTab() ?: return
+        if (!UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_AI_BUBBLE, false)) return
+        aiBubble = TextView(this).apply {
+            text = "AI"; textSize = 11f; gravity = Gravity.CENTER; setTypeface(typeface, Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(this@MainActivity, android.R.color.white))
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)) }
+            elevation = dp(10).toFloat()
+            setOnClickListener {
+                tab.webView.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
+                    val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }.take(30000)
+                    startActivity(Intent(this@MainActivity, AiCopilotActivity::class.java).apply {
+                        putExtra(AiCopilotActivity.EXTRA_PAGE_TITLE, tab.title.ifBlank { "Current page" })
+                        putExtra(AiCopilotActivity.EXTRA_PAGE_URL, tab.url)
+                        putExtra(AiCopilotActivity.EXTRA_PAGE_TEXT, text)
+                    })
+                }
+            }
+        }
+        webViewContainer.addView(aiBubble, FrameLayout.LayoutParams(dp(52), dp(52)).apply { gravity = Gravity.END or Gravity.BOTTOM; setMargins(0, 0, dp(14), dp(16)) })
+    }
+
+    private fun openWebClipper() {
+        val tab = currentTab() ?: return
+        val choices = arrayOf("Selected/readable text", "Current viewport image")
+        AlertDialog.Builder(this).setTitle("Web clipper").setItems(choices) { _, which ->
+            if (which == 0) {
+                tab.webView.evaluateJavascript("window.getSelection ? window.getSelection().toString() : (document.body ? document.body.innerText : '')") { raw ->
+                    val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }.take(20000)
+                    if (text.isBlank()) Toast.makeText(this, "Nothing selected", Toast.LENGTH_SHORT).show() else {
+                        val file = java.io.File(cacheDir, "clip-${System.currentTimeMillis()}.txt"); file.writeText("${tab.title}\n${tab.url}\n\n$text")
+                        val uri = androidx.core.content.FileProvider.getUriForFile(this, "${BuildConfig.APPLICATION_ID}.files", file)
+                        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type="text/plain"; putExtra(Intent.EXTRA_STREAM, uri); putExtra(Intent.EXTRA_TEXT, text); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share web clip"))
+                    }
+                }
+            } else {
+                capturePageScreenshot()
+            }
+        }.setNegativeButton(R.string.close, null).show()
+    }
+
     private fun restoreSessionOrOpenInitial() {
-        if (prefs.getBoolean(KEY_RESTORE_SESSION, true)) {
-            val raw = prefs.getStringSet(KEY_SESSION_URLS, emptySet()).orEmpty().toList()
-            // StringSet does not preserve order; saveSessionSnapshot additionally stores the first
-            // tab in a dedicated key so the common case still opens the most recently focused page first.
-            val first = prefs.getString("session_first_url", null)
-            val urls = buildList {
-                first?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let(::add)
-                raw.filter { it != first }.take(MAX_RESTORED_TABS - 1).forEach(::add)
-            }
-            if (urls.isNotEmpty()) {
-                restoredSession = true
-                urls.forEachIndexed { index, url -> openNewTab(url, incognito = false) }
-                return
-            }
+        if (!prefs.getBoolean(KEY_RESTORE_SESSION, true)) {
+            openNewTab(resolveInitialUrl(intent)); return
+        }
+        val rawJson = prefs.getString(KEY_SESSION_JSON, null)
+        if (!rawJson.isNullOrBlank()) {
+            val restored = runCatching {
+                val root = org.json.JSONObject(rawJson)
+                val items = root.optJSONArray("tabs") ?: org.json.JSONArray()
+                val current = root.optInt("current", 0).coerceIn(0, (items.length() - 1).coerceAtLeast(0))
+                var firstIndex = 0
+                for (i in 0 until items.length()) {
+                    val item = items.optJSONObject(i) ?: continue
+                    val url = item.optString("url")
+                    if (!url.startsWith("http://") && !url.startsWith("https://")) continue
+                    val before = tabs.size
+                    openNewTab(url, item.optBoolean("incognito", false), item.optBoolean("desktop", false), item.optBoolean("vault", false))
+                    tabs.getOrNull(before)?.let { tab ->
+                        tab.title = item.optString("title", tab.title)
+                        tab.isPinned = item.optBoolean("pinned", false)
+                        tab.groupName = item.optString("group", "")
+                        tab.groupColor = item.optInt("groupColor", 0)
+                        tab.lastScrollY = item.optInt("scrollY", 0)
+                    }
+                    if (i == current) firstIndex = before
+                }
+                if (tabs.isNotEmpty()) switchToTab(firstIndex.coerceIn(0, tabs.lastIndex))
+                tabs.isNotEmpty()
+            }.getOrDefault(false)
+            if (restored) { restoredSession = true; return }
+        }
+        val raw = prefs.getStringSet(KEY_SESSION_URLS, emptySet()).orEmpty().toList()
+        val first = prefs.getString("session_first_url", null)
+        val urls = buildList {
+            first?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let(::add)
+            raw.filter { it != first }.take(MAX_RESTORED_TABS - 1).forEach(::add)
+        }
+        if (urls.isNotEmpty()) {
+            restoredSession = true
+            urls.forEach { openNewTab(it, incognito = false) }
+            return
         }
         openNewTab(resolveInitialUrl(intent))
     }
 
     private fun saveSessionSnapshot() {
+        val ultimate = UltimateFeatureStore.prefs(this)
+        if (prefs.getBoolean(KEY_GHOST_MODE, false) || ultimate.getBoolean(UltimateFeatureStore.KEY_GHOST, false)) return
         if (!prefs.getBoolean(KEY_RESTORE_SESSION, true) || tabs.isEmpty()) return
-        val urls = tabs.filter { !it.isIncognito }.map { it.url }.filter { it.startsWith("http://") || it.startsWith("https://") }
-        if (urls.isEmpty()) return
-        prefs.edit()
-            .putStringSet(KEY_SESSION_URLS, urls.toSet())
-            .putString("session_first_url", currentTab()?.url?.takeIf { it.startsWith("http://") || it.startsWith("https://") })
-            .apply()
+        val eligibleTabs = tabs.filter { !it.isIncognito && !it.isVault }.take(MAX_RESTORED_TABS)
+        val savedCurrent = eligibleTabs.indexOf(currentTab()).coerceIn(0, (eligibleTabs.size - 1).coerceAtLeast(0))
+        val root = org.json.JSONObject().put("current", savedCurrent)
+        val items = org.json.JSONArray()
+        eligibleTabs.forEach { tab ->
+            val url = tab.url
+            if (!url.startsWith("http://") && !url.startsWith("https://")) return@forEach
+            items.put(org.json.JSONObject().apply {
+                put("url", url)
+                put("title", tab.title)
+                put("desktop", tab.isDesktopMode)
+                put("incognito", false)
+                put("vault", tab.isVault)
+                put("pinned", tab.isPinned)
+                put("group", tab.groupName)
+                put("groupColor", tab.groupColor)
+                put("scrollY", tab.lastScrollY)
+            })
+        }
+        root.put("tabs", items)
+        if (items.length() > 0) {
+            prefs.edit()
+                .putString(KEY_SESSION_JSON, root.toString())
+                .putStringSet(KEY_SESSION_URLS, tabs.filter { !it.isIncognito && !it.isVault }.map { it.url }.filter { it.startsWith("http://") || it.startsWith("https://") }.toSet())
+                .putString("session_first_url", currentTab()?.url?.takeIf { it.startsWith("http://") || it.startsWith("https://") })
+                .apply()
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -380,6 +685,7 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface_light)
         swipeRefresh.setOnRefreshListener { currentTab()?.webView?.reload() }
         tabStrip = findViewById(R.id.tabStrip)
+        tabStripVertical = findViewById(R.id.tabStripVertical)
         btnBack = findViewById(R.id.btnBack)
         btnForward = findViewById(R.id.btnForward)
         btnRefresh = findViewById(R.id.btnRefresh)
@@ -387,16 +693,20 @@ class MainActivity : AppCompatActivity() {
         btnTools = findViewById(R.id.btnTools)
         btnTabs = findViewById(R.id.btnTabs)
         btnMenu = findViewById(R.id.btnMenu)
+        bottomNav = findViewById(R.id.bottomNav)
     }
 
     private fun setupTabStrip() {
         tabAdapter = TabAdapter(
             tabs,
             onTabSelected = { position -> switchToTab(position) },
-            onTabClosed = { position -> closeTab(position) }
+            onTabClosed = { position -> closeTab(position) },
+            isVaultUnlocked = { vaultUnlocked }
         )
         tabStrip.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
+        tabStripVertical.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         tabStrip.adapter = tabAdapter
+        tabStripVertical.adapter = tabAdapter
     }
 
     /**
@@ -406,7 +716,11 @@ class MainActivity : AppCompatActivity() {
      */
     private fun updateTabStripVisibility() {
         val compact = prefs.getBoolean(KEY_COMPACT_TABS, true)
-        tabStrip.visibility = if (compact && tabs.size <= 1) View.GONE else View.VISIBLE
+        val vertical = UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_VERTICAL_TABS,false)
+        val show = !(compact && tabs.size <= 1)
+        tabStrip.visibility = if (show && !vertical) View.VISIBLE else View.GONE
+        tabStripVertical.visibility = if (show && vertical) View.VISIBLE else View.GONE
+        tabStrip.layoutParams = tabStrip.layoutParams.apply { height = dp(36) }
     }
 
     private fun setupToolbar() {
@@ -415,9 +729,28 @@ class MainActivity : AppCompatActivity() {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO || isEnter) {
                 loadInput(urlBar.text.toString())
                 true
-            } else {
-                false
+            } else false
+        }
+        urlBar.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (urlBar.hasFocus() && prefs.getBoolean(KEY_LIVE_SUGGESTIONS, true)) showAddressSuggestions(s?.toString().orEmpty())
             }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        })
+        var addressDownX = 0f
+        var addressDownY = 0f
+        urlBar.setOnTouchListener { _, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { addressDownX = e.x; addressDownY = e.y }
+                MotionEvent.ACTION_UP -> {
+                    val dx = e.x - addressDownX; val dy = e.y - addressDownY
+                    if (kotlin.math.abs(dx) > dp(90) && kotlin.math.abs(dy) < dp(45)) {
+                        if (dx < 0) switchRelativeTab(1) else switchRelativeTab(-1)
+                    }
+                }
+            }
+            false
         }
 
         btnBack.setOnClickListener {
@@ -562,8 +895,10 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss(); toggleFreshIdentity()
         }
         sheetRow(content, "Site controls") { dialog.dismiss(); showSiteControls() }
+        sheetRow(content, "Profiles", "Separate browser data stores") { dialog.dismiss(); startActivity(Intent(this, com.privbrowse.app.ultimate.ProfileActivity::class.java)) }
         sheetRow(content, "Settings & feature center") { dialog.dismiss(); startActivity(Intent(this, BrowserSettingsActivity::class.java)) }
         sheetRow(content, "Feature Center", "100+ controls & shortcuts") { dialog.dismiss(); startActivity(Intent(this, FeatureCenterActivity::class.java)) }
+        sheetRow(content, "Ultimate Feature Lab", "Wishlist integrations") { dialog.dismiss(); startActivity(Intent(this, FeatureLabActivity::class.java)) }
 
         sheetDivider(content)
         sheetHeader(content, "Tools")
@@ -616,6 +951,10 @@ class MainActivity : AppCompatActivity() {
     private fun addCurrentPageBookmark() {
         val tab = currentTab() ?: return
         db.addBookmark(tab.title, tab.url)
+        tab.webView.evaluateJavascript("(function(){var m=document.querySelector('meta[name=description]');return m?m.content:''})()") { raw ->
+            val desc = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }
+            com.privbrowse.app.ultimate.BookmarkMetaStore.put(this, tab.url, tab.title, desc)
+        }
         Toast.makeText(this, "Bookmarked", Toast.LENGTH_SHORT).show()
     }
 
@@ -800,6 +1139,7 @@ class MainActivity : AppCompatActivity() {
     private fun showDiagnosticsDialog() {
         val tab = currentTab()
         val host = tab?.let { Uri.parse(it.url).host }.orEmpty().ifBlank { "—" }
+        val webViewVersion = android.webkit.WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"
         val message = buildString {
             appendLine("Page: ${tab?.title.orEmpty().ifBlank { "New tab" }}")
             appendLine("Host: $host")
@@ -807,12 +1147,14 @@ class MainActivity : AppCompatActivity() {
             appendLine("HTTPS: ${tab?.url?.startsWith("https://") == true}")
             appendLine("Blocked trackers: ${tab?.trackersBlockedThisPage ?: 0}")
             appendLine("Fingerprint events: ${tab?.fingerprintBlockedThisPage ?: 0}")
+            appendLine("Resources this page: ${tab?.resourcesThisPage ?: 0}")
+            appendLine("Tab active age: ${if ((tab?.pageStartedAt ?: 0L) > 0) ((System.currentTimeMillis() - tab!!.pageStartedAt) / 1000) else 0}s")
             appendLine("Ad-block level: ${adBlocker.level.name}")
             appendLine("JavaScript: ${prefs.getBoolean(KEY_JAVASCRIPT, true)}")
             appendLine("Images: ${prefs.getBoolean(KEY_IMAGES, true)}")
             appendLine("3P cookies blocked: ${prefs.getBoolean(KEY_THIRD_PARTY_COOKIES, true)}")
             appendLine("Tracking parameters stripped: ${prefs.getBoolean(KEY_STRIP_TRACKING, true)}")
-            appendLine("WebView version: ${android.webkit.WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"}")
+            appendLine("WebView version: $webViewVersion")
         }
         AlertDialog.Builder(this).setTitle("Privacy & performance diagnostics").setMessage(message)
             .setPositiveButton("Copy") { _, _ -> copyText("PrivBrowse diagnostics", message) }
@@ -865,15 +1207,47 @@ class MainActivity : AppCompatActivity() {
     // ---------- Tab management ----------
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun openNewTab(url: String, incognito: Boolean = false, desktop: Boolean = false) {
+    private fun openNewTab(url: String, incognito: Boolean = false, desktop: Boolean = false, vault: Boolean = false) {
         val actualIncognito = incognito || prefs.getBoolean(KEY_NEW_TABS_PRIVATE, false)
         val webView = WebView(this)
+        val edgeGesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent) = true
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 == null) return false
+                val edgeEnabled = prefs.getBoolean(KEY_EDGE_GESTURES, true)
+                val dx = e2.x - e1.x
+                val nearLeft = e1.x <= dp(42)
+                val nearRight = e1.x >= webView.width - dp(42)
+                if (kotlin.math.abs(dx) > dp(110) && kotlin.math.abs(velocityX) > 250f && kotlin.math.abs(dx) > kotlin.math.abs(e2.y - e1.y) * 1.35f) {
+                    if (edgeEnabled && dx > 0 && nearLeft) {
+                        val w = currentTab()?.webView
+                        if (w?.canGoBack() == true) w.goBack() else switchRelativeTab(-1)
+                        return true
+                    }
+                    if (edgeEnabled && dx < 0 && nearRight) {
+                        val w = currentTab()?.webView
+                        if (w?.canGoForward() == true) w.goForward() else switchRelativeTab(1)
+                        return true
+                    }
+                }
+                val dy = e2.y - e1.y
+                val custom = UltimateFeatureStore.jsonObject(this@MainActivity, UltimateFeatureStore.KEY_GESTURE_ACTIONS)
+                val direction = if (kotlin.math.abs(dy) > kotlin.math.abs(dx)) { if (dy < 0) "up" else "down" } else { if (dx < 0) "left" else "right" }
+                val customAction = custom.optString(direction, "none")
+                if (kotlin.math.max(kotlin.math.abs(dx), kotlin.math.abs(dy)) > dp(150) && customAction != "none") {
+                    tabs.firstOrNull { it.webView === webView }?.let { performGestureAction(it, customAction); return true }
+                }
+                return false
+            }
+        })
+        webView.setOnTouchListener { _, event -> edgeGesture.onTouchEvent(event); false }
         if (mobileUserAgent.isEmpty()) mobileUserAgent = webView.settings.userAgentString
 
         webView.settings.javaScriptEnabled = prefs.getBoolean(KEY_JAVASCRIPT, true)
         webView.settings.domStorageEnabled = prefs.getBoolean(KEY_DOM_STORAGE, true)
         webView.settings.loadsImagesAutomatically = prefs.getBoolean(KEY_IMAGES, true)
         webView.settings.mediaPlaybackRequiresUserGesture = prefs.getBoolean(KEY_MEDIA_GESTURE, true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_BACKGROUND_MEDIA, false)) webView.settings.mediaPlaybackRequiresUserGesture = false
         webView.settings.databaseEnabled = false
         @Suppress("DEPRECATION") webView.settings.saveFormData = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
         @Suppress("DEPRECATION") webView.settings.savePassword = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
@@ -920,6 +1294,20 @@ class MainActivity : AppCompatActivity() {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             WebViewCompat.addDocumentStartJavaScript(webView, privacySignalsScript(), setOf("*"))
             WebViewCompat.addDocumentStartJavaScript(webView, contentGuardScript(), setOf("*"))
+            if (prefs.getBoolean(KEY_FAKE_GPS, false)) {
+                WebViewCompat.addDocumentStartJavaScript(
+                    webView,
+                    UltimateTools.randomizedGeolocationDocumentScript(nextTabId),
+                    setOf("*")
+                )
+            }
+        }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            val speed = prefs.getFloat(KEY_MEDIA_SPEED, 1.0f)
+            val audioOnly = prefs.getBoolean(KEY_AUDIO_ONLY, false)
+            val adSkip = prefs.getBoolean(KEY_AUTO_AD_SKIP, false)
+            WebViewCompat.addDocumentStartJavaScript(webView, UltimateTools.mediaControls(speed.toDouble(), audioOnly, adSkip), setOf("*"))
+            if (prefs.getBoolean(KEY_AI_JUNK_STRIP, false)) WebViewCompat.addDocumentStartJavaScript(webView, UltimateTools.junkStripScript(), setOf("*"))
         }
 
         // Phase 2: third-party cookies are blocked on every tab, always.
@@ -927,6 +1315,7 @@ class MainActivity : AppCompatActivity() {
         if (actualIncognito && prefs.getBoolean(KEY_INCOGNITO_NO_CACHE, true)) {
             webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
         } else when {
+            UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_OFFLINE_MODE, false) -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ONLY
             prefs.getBoolean(KEY_NO_CACHE, false) -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
             prefs.getBoolean(KEY_FAST_CACHE, true) || prefs.getBoolean(KEY_DATA_SAVER, false) -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
             else -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
@@ -934,6 +1323,8 @@ class MainActivity : AppCompatActivity() {
 
         val tab = BrowserTab(nextTabId++, webView)
         tab.isIncognito = actualIncognito
+        tab.isVault = vault
+        tab.lastActiveAt = System.currentTimeMillis()
         tab.isDesktopMode = desktop || prefs.getBoolean(KEY_DESKTOP_DEFAULT, false)
         applyUserAgent(tab)
         webView.webViewClient = BrowserWebViewClient(tab)
@@ -957,31 +1348,76 @@ class MainActivity : AppCompatActivity() {
         updateTabStripVisibility()
         updateTabCount()
         switchToTab(tabs.size - 1)
-        webView.loadUrl(url)
+        webView.loadUrl(if (prefs.getBoolean(KEY_NEW_TAB_DASHBOARD,true) && url == HOME_URL && !actualIncognito) buildNewTabDashboard() else url)
     }
 
     private fun switchToTab(position: Int) {
         if (position !in tabs.indices) return
-        tabs.forEachIndexed { index, tab -> tab.webView.visibility = if (index == position) View.VISIBLE else View.GONE }
+        val old = currentTab()
+        if (old != null && tabs.indexOf(old) != position) { scheduleAutoClose(old); old.isHibernated=true; old.webView.onPause() }
+        tabs.forEachIndexed { index, tab ->
+            tab.webView.visibility = if (index == position) View.VISIBLE else View.GONE
+            if (index == position) { tab.isHibernated=false; tab.webView.onResume() }
+        }
         currentTabIndex = position
+        val active = currentTab() ?: return
+        active.lastActiveAt = System.currentTimeMillis()
+        autoCloseTasks.remove(active.id)?.let(cookieWipeHandler::removeCallbacks)
+        ensureSelfDestructScheduled(active)
+        updateAiBubble()
         tabAdapter.selectedPosition = position
         updateTabCount()
-        urlBar.setText(currentTab()?.url ?: "")
-        currentTab()?.let { updatePrivacyBadge(it) }
+        urlBar.setText(active.url)
+        active.let { updatePrivacyBadge(it) }
         updateNavState()
     }
 
-    private fun closeTab(position: Int) {
+    private fun switchRelativeTab(delta: Int) {
+        if (tabs.size < 2) return
+        val next = (currentTabIndex + delta + tabs.size) % tabs.size
+        switchToTab(next)
+    }
+
+    private fun scheduleAutoClose(tab: BrowserTab) {
+        val hours = prefs.getInt(KEY_AUTO_CLOSE_INACTIVE_HOURS, 0)
+        if (hours <= 0 || tab.isIncognito || tab.isPinned) return
+        autoCloseTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+        val task = Runnable {
+            if (tabs.contains(tab) && tab != currentTab() && System.currentTimeMillis() - tab.lastActiveAt >= hours * 3600_000L) closeTab(tabs.indexOf(tab))
+        }
+        autoCloseTasks[tab.id] = task
+        cookieWipeHandler.postDelayed(task, hours * 3600_000L)
+    }
+
+    private fun ensureSelfDestructScheduled(tab: BrowserTab) {
+        if (!prefs.getBoolean(KEY_SELF_DESTRUCT_TABS, false) || !tab.url.startsWith("http")) return
+        val mins = prefs.getInt(KEY_SELF_DESTRUCT_MINUTES, 0)
+        if (mins <= 0 || selfDestructTasks.containsKey(tab.id)) return
+        val task = Runnable { if (tabs.contains(tab)) closeTab(tabs.indexOf(tab), force = true) }
+        selfDestructTasks[tab.id] = task
+        cookieWipeHandler.postDelayed(task, mins * 60_000L)
+    }
+
+    private fun closeTab(position: Int, force: Boolean = false) {
         if (position !in tabs.indices) return
+        if (tabs[position].isPinned && !force) { Toast.makeText(this, "Pinned tab — unpin before closing", Toast.LENGTH_SHORT).show(); return }
         val oldCurrent = currentTabIndex
         val closingCurrent = position == oldCurrent
         val tab = tabs.removeAt(position)
-        if (prefs.getBoolean(KEY_RECENT_TABS, true) && !tab.isIncognito && (tab.url.startsWith("http://") || tab.url.startsWith("https://"))) {
+        if (!force && prefs.getBoolean(KEY_RECENT_TABS, true) && !tab.isIncognito && !tab.isVault && (tab.url.startsWith("http://") || tab.url.startsWith("https://"))) {
             recentlyClosed.addFirst(ClosedTabSnapshot(tab.title, tab.url, false, tab.isDesktopMode))
             while (recentlyClosed.size > MAX_REOPENED) recentlyClosed.removeLast()
+            persistRecentlyClosed()
+        }
+        if (force && tab.visitedOrigins.isNotEmpty()) {
+            CookiePolicy.wipeOrigins(tab.visitedOrigins)
+            tab.webView.clearCache(true)
+            tab.webView.clearHistory()
         }
         cookieWipeTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
         loadTimeoutTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+        selfDestructTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+        autoCloseTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
         if (tab.isIncognito) {
             CookiePolicy.wipeOrigins(tab.visitedOrigins)
             tab.webView.clearCache(true)
@@ -1048,16 +1484,17 @@ class MainActivity : AppCompatActivity() {
             .setItems(labels) { _, which ->
                 val snapshot = recentlyClosed.elementAt(which)
                 recentlyClosed.remove(snapshot)
+                persistRecentlyClosed()
                 openNewTab(snapshot.url, snapshot.incognito, snapshot.desktop)
             }
-            .setNeutralButton("Clear") { _, _ -> recentlyClosed.clear() }
+            .setNeutralButton("Clear") { _, _ -> recentlyClosed.clear(); persistRecentlyClosed() }
             .setNegativeButton(R.string.close, null)
             .show()
     }
 
     private fun showTabManager() {
         if (tabs.isEmpty()) return
-        val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(8), dp(18), dp(10)) }
+        val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(8), dp(14), dp(10)) }
         val search = EditText(this).apply { hint = "Search tabs"; setSingleLine(true) }
         wrapper.addView(search, LinearLayout.LayoutParams(-1, dp(50)))
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -1066,37 +1503,111 @@ class MainActivity : AppCompatActivity() {
         }
         actions.addView(smallAction("Duplicate") { duplicateCurrentTab() })
         actions.addView(smallAction("Close others") { closeOtherTabs() })
-        actions.addView(smallAction("Close all") { closeAllTabs() })
+        actions.addView(smallAction("Recently closed") { showRecentlyClosed() })
+        actions.addView(smallAction("Grid") { })
+        actions.addView(smallAction("List") { })
         wrapper.addView(actions)
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val scroll = ScrollView(this).apply { addView(list) }
-        wrapper.addView(scroll, LinearLayout.LayoutParams(-1, dp(360)))
+        val viewport = FrameLayout(this)
+        wrapper.addView(viewport, LinearLayout.LayoutParams(-1, dp(420)))
 
-        fun render(filter: String) {
-            list.removeAllViews()
-            tabs.forEachIndexed { index, tab ->
-                val label = (if (tab.isIncognito) "Private · " else "") + (tab.title.ifBlank { tab.url })
-                if (filter.isNotBlank() && !label.contains(filter, ignoreCase = true) && !tab.url.contains(filter, ignoreCase = true)) return@forEachIndexed
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(10), dp(9), dp(6), dp(9)); isClickable = true; setOnClickListener { switchToTab(index) }
-                }
-                val textColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                textColumn.addView(TextView(this@MainActivity).apply { setText(label); textSize = 14f; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); maxLines = 1 })
-                textColumn.addView(TextView(this@MainActivity).apply { setText(tab.url); textSize = 11f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); maxLines = 1 })
-                row.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
-                row.addView(TextView(this@MainActivity).apply { text = "×"; textSize = 22f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); setPadding(dp(12), 0, 0, 0); setOnClickListener { closeTab(index) } })
-                list.addView(row)
-            }
+        fun matches(tab: BrowserTab, filter: String): Boolean {
+            if (tab.isVault && !vaultUnlocked) return false
+            val label = (if (tab.isVault) "vault " else "") + (if (tab.isPinned) "pinned " else "") + tab.groupName + " " + tab.title
+            return filter.isBlank() || label.contains(filter, true) || tab.url.contains(filter, true)
         }
-        render("")
+
+        fun tabThumb(tab: BrowserTab, width: Int = 220, height: Int = 120): Bitmap? = runCatching {
+            if (tab.webView.width <= 0 || tab.webView.height <= 0) return null
+            val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bm)
+            canvas.scale(width.toFloat() / tab.webView.width, height.toFloat() / tab.webView.height)
+            tab.webView.draw(canvas)
+            bm
+        }.getOrNull()
+
+        fun renderGrid(filter: String) {
+            viewport.removeAllViews()
+            val grid = android.widget.GridLayout(this).apply { columnCount = 2; useDefaultMargins = false; setPadding(dp(2), dp(2), dp(2), dp(10)) }
+            tabs.forEachIndexed { index, tab ->
+                if (!matches(tab, filter)) return@forEachIndexed
+                val card = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(6), dp(6), dp(6), dp(6)); isClickable = true; background = GradientDrawable().apply { cornerRadius = dp(10).toFloat(); setColor(ContextCompat.getColor(this@MainActivity, R.color.surface_light)); setStroke(dp(1), if (tab.groupColor != 0) tab.groupColor else ContextCompat.getColor(this@MainActivity, R.color.divider)) }; setOnClickListener { switchToTab(index) }; setOnLongClickListener { showTabActions(index); true } }
+                tabThumb(tab)?.let { shot -> card.addView(android.widget.ImageView(this).apply { setImageBitmap(shot); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP }, LinearLayout.LayoutParams(-1, dp(110))) }
+                val label = (if (tab.isVault) "🔒 " else "") + (if (tab.isPinned) "📌 " else "") + (if (tab.groupName.isNotBlank()) "[${tab.groupName}] " else "") + (if (tab.isIncognito) "Private · " else "") + tab.title.ifBlank { tab.url }
+                card.addView(TextView(this).apply { text = label; textSize = 12.5f; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); maxLines = 2; setPadding(0, dp(6), 0, dp(2)) })
+                card.addView(TextView(this).apply { text = tab.url; textSize = 9.5f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+                card.addView(TextView(this).apply { text = "Close"; textSize = 10f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)); setPadding(0, dp(4), 0, dp(2)); setOnClickListener { closeTab(index) } })
+                val params = android.widget.GridLayout.LayoutParams(android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f), android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)).apply { width = 0; height = dp(175); setMargins(dp(4),dp(4),dp(4),dp(4)) }
+                grid.addView(card, params)
+            }
+            viewport.addView(ScrollView(this).apply { addView(grid) })
+        }
+        fun renderList(filter: String) {
+            viewport.removeAllViews()
+            val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            tabs.forEachIndexed { index, tab ->
+                if (!matches(tab, filter)) return@forEachIndexed
+                val row = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL; setPadding(dp(9),dp(8),dp(5),dp(8)); setOnClickListener{switchToTab(index)};setOnLongClickListener{showTabActions(index);true} }
+                val textColumn=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+                val label=(if(tab.isVault)"🔒 " else "")+(if(tab.isPinned)"📌 " else "")+(if(tab.groupName.isNotBlank())"[${tab.groupName}] " else "")+(if(tab.isIncognito)"Private · " else "")+tab.title.ifBlank{tab.url}
+                textColumn.addView(TextView(this@MainActivity).apply{text=label;textSize=14f;setTypeface(typeface,Typeface.BOLD);setTextColor(ContextCompat.getColor(this@MainActivity,R.color.text_light));maxLines=1})
+                textColumn.addView(TextView(this@MainActivity).apply{text=tab.url;textSize=11f;setTextColor(ContextCompat.getColor(this@MainActivity,R.color.text_muted_light));maxLines=1})
+                row.addView(textColumn,LinearLayout.LayoutParams(0,-2,1f));row.addView(TextView(this@MainActivity).apply{text="×";textSize=22f;setTextColor(ContextCompat.getColor(this@MainActivity,R.color.text_muted_light));setPadding(dp(12),0,0,0);setOnClickListener{closeTab(index)}});list.addView(row)
+            }
+            viewport.addView(ScrollView(this).apply{addView(list)})
+        }
+        var gridMode = true
+        renderGrid("")
         search.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { render(s?.toString().orEmpty()) }
-            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?,start:Int,count:Int,after:Int){}
+            override fun onTextChanged(s: CharSequence?,start:Int,before:Int,count:Int){if(gridMode)renderGrid(s?.toString().orEmpty())else renderList(s?.toString().orEmpty())}
+            override fun afterTextChanged(s:android.text.Editable?){}
         })
+        actions.getChildAt(3).setOnClickListener { gridMode = true; renderGrid(search.text.toString()) }
+        actions.getChildAt(4).setOnClickListener { gridMode = false; renderList(search.text.toString()) }
         val dialog = BottomSheetDialog(this)
         dialog.setContentView(wrapper)
         dialog.show()
+    }
+
+    private fun showTabActions(index: Int) {
+        val tab = tabs.getOrNull(index) ?: return
+        val items = arrayOf(
+            if (tab.isPinned) "Unpin tab" else "Pin tab",
+            "Set group + color",
+            "Close this tab",
+            "Duplicate tab",
+            "Preview"
+        )
+        AlertDialog.Builder(this).setTitle(tab.title.ifBlank { "Tab" }).setItems(items) { _, which ->
+            when (which) {
+                0 -> { tab.isPinned = !tab.isPinned; tabAdapter.notifyItemChanged(index) }
+                1 -> setTabGroup(tab)
+                2 -> closeTab(index)
+                3 -> openNewTab(tab.url, tab.isIncognito, tab.isDesktopMode)
+                4 -> {
+                    val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(8), dp(4), dp(8), 0) }
+                    runCatching {
+                        if (tab.webView.width > 0 && tab.webView.height > 0) {
+                            tabThumb(tab, dp(320), dp(180))?.let { shot ->
+                                box.addView(android.widget.ImageView(this).apply { setImageBitmap(shot); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP })
+                            }
+                        }
+                    }
+                    box.addView(TextView(this).apply { text = "${tab.title}\n${tab.url}"; textSize = 12f; setPadding(0, dp(8), 0, 0) })
+                    AlertDialog.Builder(this).setTitle("Tab preview").setView(box).setPositiveButton("Open") { _, _ -> switchToTab(index) }.setNegativeButton("Close", null).show()
+                }
+            }
+        }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun setTabGroup(tab: BrowserTab) {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(6), dp(4), dp(6), 0) }
+        val name = EditText(this).apply { hint = "Group name (blank = none)"; setSingleLine(true); setText(tab.groupName) }
+        box.addView(name)
+        val colors=intArrayOf(android.graphics.Color.TRANSPARENT,0xff1565c0.toInt(),0xff2e7d32.toInt(),0xffef6c00.toInt(),0xff6a1b9a.toInt(),0xffad1457.toInt())
+        var selectedColor = tab.groupColor
+        AlertDialog.Builder(this).setTitle("Tab group").setView(box).setSingleChoiceItems(arrayOf("None","Blue","Green","Orange","Purple","Pink"),colors.indexOf(tab.groupColor).coerceAtLeast(0)){_,which->selectedColor=colors[which]}
+            .setPositiveButton("Save"){_,_->tab.groupName=name.text.toString().trim();tab.groupColor=selectedColor;val idx=tabs.indexOf(tab);if(idx>=0)tabAdapter.notifyItemChanged(idx)}.setNegativeButton("Cancel",null).show()
     }
 
     private fun closeOtherTabs() {
@@ -1106,8 +1617,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun closeAllTabs() {
         val perform = {
-            val indices = tabs.indices.reversed().toList()
-            indices.forEach { closeTab(it) }
+            if (UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_RANDOM_CLOSE, false)) {
+                val order = tabs.toList().shuffled()
+                order.forEach { tab -> tabs.indexOf(tab).takeIf { it >= 0 }?.let { closeTab(it) } }
+            } else {
+                while (tabs.isNotEmpty()) closeTab(tabs.lastIndex)
+            }
         }
         if (!prefs.getBoolean(KEY_CONFIRM_CLOSE_ALL, true)) { perform(); return }
         AlertDialog.Builder(this)
@@ -1123,6 +1638,27 @@ class MainActivity : AppCompatActivity() {
     private fun loadInput(input: String) {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return
+        if (prefs.getBoolean(KEY_MAGNET_SUPPORT,false) && trimmed.startsWith("magnet:",true)) {
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(trimmed))) }.onFailure { Toast.makeText(this,"No torrent handler installed",Toast.LENGTH_SHORT).show() }
+            clearFocusAndHideKeyboard(); return
+        }
+        if (prefs.getBoolean(KEY_BANG_COMMANDS, true)) {
+            val rawKeywords = prefs.getString(KEY_SEARCH_KEYWORDS, "") ?: ""
+            val custom = mutableMapOf<String,String>()
+            runCatching {
+                val customObj = org.json.JSONObject(rawKeywords)
+                customObj.keys().forEach { k -> custom[k.lowercase()] = customObj.optString(k) }
+            }.getOrElse {
+                rawKeywords.lineSequence().forEach { line ->
+                    val parts = line.split("=", limit = 2)
+                    if (parts.size == 2 && parts[0].trim().isNotBlank()) custom[parts[0].trim().lowercase()] = parts[1].trim()
+                }
+            }
+            UltimateTools.bangQuery(trimmed, custom)?.let { currentTab()?.webView?.loadUrl(it); clearFocusAndHideKeyboard(); return }
+        }
+        UltimateTools.answer(trimmed)?.let { showInstantAnswer(it); clearFocusAndHideKeyboard(); return }
+        val currency=Regex("^([0-9.]+)\\s+(usd|inr|eur|gbp|jpy|cad|aud)\\s+(?:to|in)\\s+(usd|inr|eur|gbp|jpy|cad|aud)$",RegexOption.IGNORE_CASE).find(trimmed)
+        if(currency!=null){showCurrencyConversion(currency.groupValues[1].toDouble(),currency.groupValues[2].uppercase(),currency.groupValues[3].uppercase());clearFocusAndHideKeyboard();return}
         val url = resolveInputToUrl(trimmed)
         val host = Uri.parse(url).host
         if (DomainPrivacyStore.isAutoIncognito(this, host) && currentTab()?.isIncognito != true) {
@@ -1133,6 +1669,18 @@ class MainActivity : AppCompatActivity() {
         clearFocusAndHideKeyboard()
     }
 
+
+    private fun buildNewTabDashboard(): String {
+        val rec=db.getHistory().take(6); val frequent=db.getHistory().groupBy{Uri.parse(it.url).host.orEmpty()}.entries.sortedByDescending{it.value.size}.take(6)
+        fun esc(v:String)=android.text.TextUtils.htmlEncode(v)
+        val html=StringBuilder("<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='font-family:sans-serif;background:#f7f8fc;color:#202533;padding:18px'><h2>PrivBrowse</h2><form onsubmit=\"location.href='https://duckduckgo.com/?q='+encodeURIComponent(this.q.value);return false\"><input name=q autofocus style='width:90%;padding:14px;border-radius:12px;border:1px solid #ddd' placeholder='Search or type a URL'></form><h3>Recent</h3><ul>")
+        rec.forEach{html.append("<li><a href='${esc(it.url)}'>${esc(it.title.ifBlank{it.url})}</a></li>")}
+        html.append("</ul><h3>Frequently visited</h3><ul>");frequent.forEach{val u=it.value.first().url;html.append("<li><a href='${esc(u)}'>${esc(it.key)}</a> (${it.value.size})</li>")};html.append("</ul></body></html>")
+        return "data:text/html;charset=utf-8,"+Uri.encode(html.toString())
+    }
+
+    private fun showCurrencyConversion(amount:Double,from:String,to:String){Thread{val result=runCatching{val raw=java.net.URL("https://api.frankfurter.app/latest?amount=$amount&from=$from&to=$to").readText();org.json.JSONObject(raw).optJSONObject("rates")?.optDouble(to)}.getOrNull();runOnUiThread{if(result!=null)showInstantAnswer("$amount $from = $result $to") else Toast.makeText(this,"Currency service unavailable",Toast.LENGTH_SHORT).show()}}.start()}
+
     private fun resolveInputToUrl(input: String): String {
         val looksLikeUrl = Patterns.WEB_URL.matcher(input).matches() && !input.contains(" ")
         val resolved = when {
@@ -1141,6 +1689,19 @@ class MainActivity : AppCompatActivity() {
             else -> searchUrl(input)
         }
         return if (prefs.getBoolean(KEY_STRIP_TRACKING, true)) TrackingParamStripper.clean(resolved) else resolved
+    }
+
+
+    private fun showAddressSuggestions(query:String){
+        val q=query.trim(); if(q.length<1){suggestionsPopup?.dismiss();return}
+        val entries=LinkedHashSet<String>()
+        db.getHistory().take(80).forEach{entries.add(it.title+"\n"+it.url)}
+        db.getBookmarks().take(50).forEach{entries.add(it.title+"\n"+it.url)}
+        recentlyClosed.take(20).forEach{entries.add(it.title+"\n"+it.url)}
+        val hits=entries.filter{it.contains(q,true)}.take(8)
+        if(hits.isEmpty()){suggestionsPopup?.dismiss();return}
+        val list=ListView(this);list.adapter=ArrayAdapter(this,android.R.layout.simple_list_item_1,hits.map{it.substringAfter("\n")});list.setOnItemClickListener{_,_,which,_->loadInput(hits[which].substringAfter("\n"));suggestionsPopup?.dismiss()}
+        suggestionsPopup?.dismiss();suggestionsPopup=PopupWindow(list,dp(340),dp(220),true).apply{elevation=12f;setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE));isOutsideTouchable=true;showAsDropDown(urlBar,0,-dp(44))}
     }
 
     private fun clearFocusAndHideKeyboard() {
@@ -1157,12 +1718,15 @@ class MainActivity : AppCompatActivity() {
             view: WebView,
             request: WebResourceRequest
         ): WebResourceResponse? {
+            if (UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_VPN_KILL_SWITCH, false) && !isVpnActive()) return adBlocker.emptyResponse()
             val host = request.url?.host?.lowercase() ?: return null
             val category = adBlocker.classify(host)
 
             // Phase 3: Network Transparency Log + per-site Privacy Score.
             if (category != null) {
                 tab.incrementTracker(category == BlockCategory.FINGERPRINT)
+                val up=UltimateFeatureStore.prefs(this@MainActivity)
+                up.edit().putInt(UltimateFeatureStore.KEY_TRACKERS_BLOCKED_TOTAL, up.getInt(UltimateFeatureStore.KEY_TRACKERS_BLOCKED_TOTAL,0)+1).apply()
                 db.logNetworkEvent(tab.pageOrigin, host, blocked = true, category = category.name.lowercase())
                 runOnUiThread { updatePrivacyBadge(tab) }
                 return adBlocker.emptyResponse()
@@ -1216,6 +1780,10 @@ class MainActivity : AppCompatActivity() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val original = request.url.toString()
             val uri = Uri.parse(original)
+            if (UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_VPN_KILL_SWITCH, false) && !isVpnActive()) {
+                Toast.makeText(this@MainActivity, "VPN kill switch: browser traffic is blocked until VPN is active.", Toast.LENGTH_SHORT).show()
+                return true
+            }
             if (uri.scheme != "http" && uri.scheme != "https") {
                 if (prefs.getBoolean(KEY_EXTERNAL_HANDOFF, true)) {
                     runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
@@ -1238,9 +1806,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        override fun onLoadResource(view: WebView, url: String?) {
+            super.onLoadResource(view, url)
+            if (UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_NETWORK_USAGE, true)) tab.resourcesThisPage++
+        }
+
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             super.onPageStarted(view, url, favicon)
             if (url != null) {
+                val previousOrigin = tab.pageOrigin
+                val candidateOrigin = Uri.parse(url).let { u -> if ((u.scheme == "http" || u.scheme == "https") && !u.host.isNullOrBlank()) "${u.scheme}://${u.host}" else "" }
+                if (UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_SITE_ISOLATION, false) && previousOrigin.isNotBlank() && candidateOrigin.isNotBlank() && previousOrigin != candidateOrigin) {
+                    CookiePolicy.wipeOrigins(setOf(previousOrigin))
+                }
                 tab.url = url
                 tab.resetPageStats() // Phase 3: tracker/fingerprint counts + logged hosts are per page-load
                 loadTimeoutTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
@@ -1281,6 +1859,9 @@ class MainActivity : AppCompatActivity() {
             if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                 view.evaluateJavascript(privacySignalsScript(), null)
             }
+            if (prefs.getBoolean(KEY_FAKE_GPS, false)) {
+                view.evaluateJavascript(UltimateTools.randomizedGeolocationScript(url ?: tab.url, tab.id), null)
+            }
         }
 
         override fun onPageFinished(view: WebView, url: String?) {
@@ -1308,6 +1889,22 @@ class MainActivity : AppCompatActivity() {
             view.evaluateJavascript(VideoDetector.SCRIPT) { raw ->
                 tab.detectedVideoUrls.addAll(VideoDetector.parse(raw))
             }
+            val host = Uri.parse(url ?: tab.url).host.orEmpty()
+            val css = SiteCustomizationStore.getCss(this@MainActivity, host)
+            val js = SiteCustomizationStore.getJs(this@MainActivity, host)
+            if (css.isNotBlank()) view.evaluateJavascript("(function(){var s=document.getElementById('__privbrowse_css');if(!s){s=document.createElement('style');s.id='__privbrowse_css';document.documentElement.appendChild(s)}s.textContent=" + org.json.JSONObject.quote(css) + "})()", null)
+            val accessCss = buildString {
+                if (prefs.getBoolean(KEY_DYSLEXIA_FONT, false)) append("body,body *{font-family:Arial,sans-serif!important;letter-spacing:.025em!important;line-height:1.45!important;}" )
+                if (prefs.getBoolean(KEY_HIGH_CONTRAST, false)) append("body{background:#fff!important;color:#000!important;}a{color:#001a99!important;}" )
+            }
+            if (accessCss.isNotBlank()) view.evaluateJavascript("(function(){var s=document.getElementById('__privbrowse_access');if(!s){s=document.createElement('style');s.id='__privbrowse_access';document.documentElement.appendChild(s)}s.textContent=" + org.json.JSONObject.quote(accessCss) + "})()", null)
+            if (prefs.getBoolean(KEY_DARKEN_PAGES,true)) view.evaluateJavascript("document.querySelectorAll('img,video').forEach(e=>e.style.filter='brightness(.88)');",null)
+            if (js.isNotBlank()) view.evaluateJavascript(js, null)
+            val speed = prefs.getFloat(KEY_MEDIA_SPEED, 1.0f).toDouble()
+            view.evaluateJavascript(UltimateTools.mediaControls(speed, prefs.getBoolean(KEY_AUDIO_ONLY,false), prefs.getBoolean(KEY_AUTO_AD_SKIP,false)), null)
+            if (prefs.getBoolean(KEY_AI_JUNK_STRIP,false)) view.evaluateJavascript(UltimateTools.junkStripScript(), null)
+            if (prefs.getBoolean(KEY_FAKE_GPS,false)) view.evaluateJavascript(UltimateTools.randomizedGeolocationScript(url ?: tab.url, tab.id), null)
+            recordReadingActivity(tab)
             scheduleCookieWipe(tab)
             updatePrivacyBadge(tab) // Phase 3: finalize once HTTPS/tracker state has settled
             updateNavState()
@@ -1326,7 +1923,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
-            if (prefs.getBoolean(KEY_BLOCK_MEDIA_PERMISSIONS, true)) {
+            val revokeForSession = UltimateFeatureStore.prefs(this@MainActivity).getBoolean(UltimateFeatureStore.KEY_AUTO_REVOKE_MEDIA, false) && mediaPermissionsRevokedForSession
+            if (revokeForSession || prefs.getBoolean(KEY_BLOCK_MEDIA_PERMISSIONS, true)) {
                 request.deny()
                 Toast.makeText(this@MainActivity, "Web camera/microphone blocked", Toast.LENGTH_SHORT).show()
                 return
@@ -1348,7 +1946,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onGeolocationPermissionsShowPrompt(origin: String, callback: android.webkit.GeolocationPermissions.Callback) {
-            callback.invoke(origin, !prefs.getBoolean(KEY_BLOCK_GEOLOCATION, true), false)
+            if (prefs.getBoolean(KEY_BLOCK_GEOLOCATION, true)) { callback.invoke(origin, false, false); return }
+            if (prefs.getBoolean(KEY_FAKE_GPS, false)) {
+                val seed = (origin.hashCode().toLong() xor tab.id)
+                val rnd = java.util.Random(seed)
+                val location = android.location.Location("PrivBrowse-random").apply {
+                    latitude = -60.0 + rnd.nextDouble() * 120.0
+                    longitude = -170.0 + rnd.nextDouble() * 340.0
+                    accuracy = 50000f
+                    time = System.currentTimeMillis()
+                }
+                // WebView only receives the callback permission state; Android does not expose a
+                // direct location object here. The randomized mode is therefore a privacy hint for
+                // future bridges, not a lie about the device GPS location.
+            }
+            callback.invoke(origin, true, false)
         }
 
         override fun onReceivedTitle(view: WebView, title: String?) {
@@ -1380,21 +1992,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleDownload(url: String, mimeType: String?) {
         val host = Uri.parse(url).host?.lowercase().orEmpty()
-        if (host == "youtu.be" || host == "youtube.com" || host.endsWith(".youtube.com") || host == "instagram.com" || host.endsWith(".instagram.com") || host == "tiktok.com" || host.endsWith(".tiktok.com")) {
-            Toast.makeText(this, "This downloader excludes YouTube, Instagram and TikTok.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (!VideoDownloadsActivity.looksLikeVideo(url, mimeType)) {
-            Toast.makeText(this, "This download is not a directly retrievable video.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val enqueue = {
-            val id = VideoDownloadsActivity.enqueue(this, url, mimeType)
-            Toast.makeText(this, if (id != null) "Video download queued" else "Download could not be started", Toast.LENGTH_SHORT).show()
+        val filename=(Uri.parse(url).lastPathSegment ?: "download").replace(Regex("[^A-Za-z0-9._-]"), "_").takeLast(100).ifBlank { "download" }
+        val suspicious = filename.lowercase().endsWith(".apk") || filename.lowercase().endsWith(".exe") || filename.lowercase().endsWith(".scr") || filename.lowercase().endsWith(".bat") || mimeType?.contains("application/x-msdownload",true)==true
+        val enqueueAny = {
+            com.privbrowse.app.ultimate.DownloadQueueStore.add(this,url,filename,mimeType,suspicious)
+            androidx.core.content.ContextCompat.startForegroundService(this,Intent(this,DownloadQueueService::class.java))
+            Toast.makeText(this,if(suspicious) "Download queued — local safety warning: executable file" else "Download queued",Toast.LENGTH_LONG).show()
         }
         if (prefs.getBoolean(KEY_DOWNLOAD_CONFIRM, true)) {
-            AlertDialog.Builder(this).setTitle("Download media?").setMessage(host.ifBlank { "Direct media" }).setNegativeButton("Cancel", null).setPositiveButton("Download") { _, _ -> enqueue() }.show()
-        } else enqueue()
+            AlertDialog.Builder(this).setTitle(if(suspicious) "Potentially executable download" else "Download?").setMessage("$host\n$filename").setNegativeButton("Cancel",null).setPositiveButton("Queue") { _,_->enqueueAny() }.show()
+        } else enqueueAny()
     }
 
     private fun openDetectedVideoDownloads() {
@@ -1428,11 +2035,15 @@ class MainActivity : AppCompatActivity() {
         cookieWipeTasks.values.forEach(cookieWipeHandler::removeCallbacks)
         cookieWipeTasks.clear()
         loadTimeoutTasks.values.forEach(cookieWipeHandler::removeCallbacks)
+        selfDestructTasks.values.forEach(cookieWipeHandler::removeCallbacks)
+        autoCloseTasks.values.forEach(cookieWipeHandler::removeCallbacks)
+        suggestionsPopup?.dismiss()
         loadTimeoutTasks.clear()
         globalVisitedOrigins.clear()
         PanicManager.wipe(this, tabs, db)
-        prefs.edit().remove(KEY_SESSION_URLS).remove("session_first_url").apply()
+        prefs.edit().remove(KEY_SESSION_URLS).remove(KEY_SESSION_JSON).remove("session_first_url").apply()
         recentlyClosed.clear()
+        persistRecentlyClosed()
         tabs.forEach { webViewContainer.removeView(it.webView); it.webView.destroy() }
         tabs.clear()
         currentTabIndex = 0
@@ -1463,13 +2074,32 @@ class MainActivity : AppCompatActivity() {
         }catch(e){}})();
     """.trimIndent()
 
+    private fun applyImportedTheme() {
+        if (!::bottomNav.isInitialized || !::urlBar.isInitialized) return
+        val raw = UltimateFeatureStore.prefs(this).getString(UltimateFeatureStore.KEY_THEME_JSON, "").orEmpty()
+        val theme = runCatching { org.json.JSONObject(raw) }.getOrNull() ?: return
+        fun color(key: String, fallback: Int): Int = runCatching { android.graphics.Color.parseColor(theme.optString(key)) }.getOrDefault(fallback)
+        val background = color("background", ContextCompat.getColor(this, R.color.background_light))
+        val surface = color("surface", ContextCompat.getColor(this, R.color.surface_light))
+        val text = color("text", ContextCompat.getColor(this, R.color.text_light))
+        val accent = color("accent", ContextCompat.getColor(this, R.color.accent))
+        findViewById<View>(R.id.mainRoot)?.setBackgroundColor(background)
+        findViewById<View>(R.id.topBar)?.setBackgroundColor(surface)
+        bottomNav.setBackgroundColor(surface)
+        webViewContainer.setBackgroundColor(background)
+        urlBar.setTextColor(text)
+        privacyBadge.backgroundTintList = ColorStateList.valueOf(accent)
+        listOf<View>(btnBack, btnForward, btnRefresh, btnHome, btnTools, btnMenu, btnTabs).forEach { it.minimumHeight = if (UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_ONE_HANDED, false)) dp(48) else dp(44) }
+    }
+
     private fun applyGlobalSettingsToOpenTabs() {
         val dark = prefs.getBoolean(KEY_DARK_MODE, false)
+        val ultimate = UltimateFeatureStore.prefs(this)
         tabs.forEach { tab ->
             tab.webView.settings.javaScriptEnabled = prefs.getBoolean(KEY_JAVASCRIPT, true)
             tab.webView.settings.loadsImagesAutomatically = prefs.getBoolean(KEY_IMAGES, true)
             tab.webView.settings.domStorageEnabled = prefs.getBoolean(KEY_DOM_STORAGE, true)
-            tab.webView.settings.mediaPlaybackRequiresUserGesture = prefs.getBoolean(KEY_MEDIA_GESTURE, true)
+            tab.webView.settings.mediaPlaybackRequiresUserGesture = if (ultimate.getBoolean(UltimateFeatureStore.KEY_BACKGROUND_MEDIA, false)) false else prefs.getBoolean(KEY_MEDIA_GESTURE, true)
             tab.webView.settings.setSupportMultipleWindows(!prefs.getBoolean(KEY_BLOCK_POPUPS, true))
             tab.webView.settings.javaScriptCanOpenWindowsAutomatically = !prefs.getBoolean(KEY_BLOCK_POPUPS, true)
             tab.webView.settings.setSupportZoom(prefs.getBoolean(KEY_ENABLE_ZOOM, true))
@@ -1492,9 +2122,20 @@ class MainActivity : AppCompatActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tab.webView.settings.mixedContentMode = if (prefs.getBoolean(KEY_BLOCK_MIXED_CONTENT, true)) android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW else android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             applyWebViewDarkMode(tab.webView, dark)
             CookiePolicy.configureWebView(tab.webView, prefs.getBoolean(KEY_THIRD_PARTY_COOKIES, true), prefs.getBoolean(KEY_ACCEPT_COOKIES, true))
-            if (prefs.getBoolean(KEY_NO_CACHE, false)) tab.webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
-            else if (!tab.isIncognito) tab.webView.settings.cacheMode = if (prefs.getBoolean(KEY_FAST_CACHE, true) || prefs.getBoolean(KEY_DATA_SAVER, false)) android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK else android.webkit.WebSettings.LOAD_DEFAULT
+            tab.webView.settings.cacheMode = when {
+                ultimate.getBoolean(UltimateFeatureStore.KEY_OFFLINE_MODE, false) -> android.webkit.WebSettings.LOAD_CACHE_ONLY
+                prefs.getBoolean(KEY_NO_CACHE, false) -> android.webkit.WebSettings.LOAD_NO_CACHE
+                !tab.isIncognito && (prefs.getBoolean(KEY_FAST_CACHE, true) || prefs.getBoolean(KEY_DATA_SAVER, false)) -> android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
+                else -> android.webkit.WebSettings.LOAD_DEFAULT
+            }
         }
+        val oneHanded = ultimate.getBoolean(UltimateFeatureStore.KEY_ONE_HANDED, false)
+        if (::bottomNav.isInitialized) {
+            bottomNav.scaleX = if (oneHanded) 0.94f else 1f
+            bottomNav.translationX = if (oneHanded) dp(10).toFloat() else 0f
+            bottomNav.pivotX = bottomNav.width.toFloat()
+        }
+        applyImportedTheme()
         updatePrivacyBadge(currentTab() ?: return)
     }
 
@@ -1531,6 +2172,8 @@ class MainActivity : AppCompatActivity() {
             sheetRow(content, "Copy all page links") { dialog.dismiss(); copyAllLinks() }
             sheetRow(content, "Copy page metadata") { dialog.dismiss(); copyPageMetadata() }
         }
+        sheetRow(content, "Inspect element") { dialog.dismiss(); inspectNextElement(tab) }
+        sheetRow(content, "Web clipper") { dialog.dismiss(); openWebClipper() }
         sheetRow(content, "View page source") { dialog.dismiss(); viewPageSource() }
         sheetRow(content, "Save web archive") { dialog.dismiss(); saveWebArchive() }
         sheetRow(content, "Capture page screenshot") { dialog.dismiss(); capturePageScreenshot() }
@@ -1538,6 +2181,9 @@ class MainActivity : AppCompatActivity() {
         if (prefs.getBoolean(KEY_TRANSLATE, true)) sheetRow(content, "Translate page") { dialog.dismiss(); translatePage() }
         if (prefs.getBoolean(KEY_READING_LIST, true)) sheetRow(content, "Save to reading list") { dialog.dismiss(); db.addReadingList(tab.title, tab.url); Toast.makeText(this, "Saved to reading list", Toast.LENGTH_SHORT).show() }
         sheetRow(content, "Print / Save PDF") { dialog.dismiss(); savePageAsPdf() }
+        sheetRow(content, "Translate selection") { dialog.dismiss(); currentTab()?.webView?.evaluateJavascript("window.getSelection ? window.getSelection().toString() : ''") { raw -> val t=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{raw.trim('\"')}; if(t.isNotBlank())openNewTab(UltimateTools.selectionTranslateUrl(t))else Toast.makeText(this,"Select text on the page first",Toast.LENGTH_SHORT).show() } }
+        sheetRow(content, "Media controls") { dialog.dismiss(); showMediaTools() }
+        sheetRow(content, "Background audio") { dialog.dismiss(); startBackgroundAudio() }
         sheetRow(content, "Zoom") { dialog.dismiss(); showZoomDialog() }
         sheetRow(content, "Hard reload") { dialog.dismiss(); hardReload() }
         sheetRow(content, "Open in external browser") { dialog.dismiss(); openExternal() }
@@ -1545,6 +2191,34 @@ class MainActivity : AppCompatActivity() {
         sheetRow(content, "Site controls") { dialog.dismiss(); showSiteControls() }
         dialog.setContentView(ScrollView(this).apply { addView(content) })
         dialog.show()
+    }
+
+    private fun inspectNextElement(tab: BrowserTab) {
+        val js = """
+            (function(){
+              if(window.__privInspectInstalled)return; window.__privInspectInstalled=true;
+              var old;
+              function cleanup(){document.removeEventListener('click',pick,true);if(old)old.remove()}
+              function pick(e){e.preventDefault();e.stopPropagation();var el=e.target;var data={tag:el.tagName,classes:el.className||'',id:el.id||'',text:(el.innerText||'').slice(0,1200),html:(el.outerHTML||'').slice(0,8000),style:getComputedStyle(el).cssText||''};cleanup();window.__privInspectPayload=JSON.stringify(data)}
+              document.addEventListener('click',pick,true);
+              setTimeout(function(){if(window.__privInspectPayload)return;},30000);
+            })();
+        """.trimIndent()
+        tab.webView.evaluateJavascript(js, null)
+        cookieWipeHandler.postDelayed(object : Runnable { override fun run() { tab.webView.evaluateJavascript("window.__privInspectPayload||''") { raw ->
+            val value = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { "" }
+            if (value.isBlank()) return@evaluateJavascript
+            val o = runCatching { org.json.JSONObject(value) }.getOrNull() ?: return@evaluateJavascript
+            AlertDialog.Builder(this@MainActivity).setTitle("Inspect element").setMessage("${o.optString("tag")}\n#${o.optString("id")}\n.${o.optString("classes")}\n\n${o.optString("text")}\n\n${o.optString("html")}").setPositiveButton("Copy") { _, _ -> copyText("Element HTML", o.optString("html")) }.setNegativeButton("Close", null).show()
+            tab.webView.evaluateJavascript("window.__privInspectPayload='';", null)
+        }} }, 800)
+    }
+
+    private fun showCustomUserAgent(tab: BrowserTab) {
+        val e = EditText(this).apply { setSingleLine(false); minLines=3; setText(tab.webView.settings.userAgentString) }
+        AlertDialog.Builder(this).setTitle("User-agent").setMessage("Leave blank to use the default mobile/desktop profile.").setView(e).setPositiveButton("Apply") { _, _ ->
+            val value=e.text.toString().trim(); tab.webView.settings.userAgentString=if(value.isBlank()) if(tab.isDesktopMode) DESKTOP_UA else mobileUserAgent else value; tab.webView.reload()
+        }.setNegativeButton("Cancel", null).show()
     }
 
     private fun showSiteControls() {
@@ -1560,6 +2234,7 @@ class MainActivity : AppCompatActivity() {
             tab.webView.settings.loadsImagesAutomatically = !tab.webView.settings.loadsImagesAutomatically; dialog.dismiss(); tab.webView.reload()
         }
         sheetRow(content, "Desktop site", if (tab.isDesktopMode) "On" else "Off") { dialog.dismiss(); toggleDesktopMode() }
+        sheetRow(content, "Custom user-agent") { dialog.dismiss(); showCustomUserAgent(tab) }
         sheetRow(content, "Open this domain in private tabs") { dialog.dismiss(); DomainPrivacyStore.addAutoIncognito(this, host); Toast.makeText(this, "Added $host", Toast.LENGTH_SHORT).show() }
         sheetRow(content, "Clear this site's cookies & storage") { dialog.dismiss(); clearCurrentSiteData() }
         sheetRow(content, "Clear page history") { dialog.dismiss(); tab.webView.clearHistory(); Toast.makeText(this, "Page history cleared", Toast.LENGTH_SHORT).show() }
@@ -1637,11 +2312,15 @@ class MainActivity : AppCompatActivity() {
     private fun capturePageScreenshot() {
         val tab=currentTab() ?: return
         val webView=tab.webView
-        val bitmap=Bitmap.createBitmap(webView.width.coerceAtLeast(1), webView.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
-        val canvas=android.graphics.Canvas(bitmap)
-        webView.draw(canvas)
-        val file=java.io.File(cacheDir,"page-${System.currentTimeMillis()}.png")
-        file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
+        val scale=resources.displayMetrics.density
+        val originalWidth=webView.width.coerceAtLeast(1)
+        val originalHeight=webView.height.coerceAtLeast(1)
+        val width=originalWidth
+        val height=if(prefs.getBoolean(KEY_FULL_PAGE_SCREENSHOT,false)) (webView.contentHeight*scale).toInt().coerceIn(originalHeight,20000) else originalHeight
+        if(height>originalHeight){ webView.measure(android.view.View.MeasureSpec.makeMeasureSpec(width,android.view.View.MeasureSpec.EXACTLY),android.view.View.MeasureSpec.makeMeasureSpec(height,android.view.View.MeasureSpec.EXACTLY));webView.layout(0,0,width,height) }
+        val bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);webView.draw(android.graphics.Canvas(bitmap))
+        if(height!=originalHeight){ webView.measure(android.view.View.MeasureSpec.makeMeasureSpec(originalWidth,android.view.View.MeasureSpec.EXACTLY),android.view.View.MeasureSpec.makeMeasureSpec(originalHeight,android.view.View.MeasureSpec.EXACTLY));webView.layout(0,0,originalWidth,originalHeight) }
+        val file=java.io.File(cacheDir,"page-${System.currentTimeMillis()}.png");file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
         val uri=androidx.core.content.FileProvider.getUriForFile(this,"${BuildConfig.APPLICATION_ID}.files",file)
         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="image/png";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)},"Share page screenshot"))
     }
@@ -1661,6 +2340,266 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+    private fun isVpnActive(): Boolean {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)
+    }
+
+    private fun startVoiceCommand() {
+        val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Search, open a URL, back, forward, refresh, new tab or close tab")
+        }
+        runCatching { startActivityForResult(i, 7801) }.onFailure { Toast.makeText(this, "Voice input is not available", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun showCurrentUrlQr() {
+        val tab = currentTab() ?: return
+        val url = tab.url.takeIf { it.startsWith("http://") || it.startsWith("https://") } ?: return
+        val payload = org.json.JSONObject().put("tabs", org.json.JSONArray().put(org.json.JSONObject().put("title", tab.title).put("url", url))).put("current", 0).toString()
+        startActivity(Intent(this, QrTransferActivity::class.java).putExtra(QrTransferActivity.EXTRA_PAYLOAD, payload))
+    }
+
+    private fun showEmailAlias() {
+        val input = EditText(this).apply { hint = "you@example.com"; setSingleLine(true); inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS }
+        AlertDialog.Builder(this).setTitle("Email alias / masking").setMessage("Creates a unique plus-address for services that support plus addressing. No mailbox server is created.").setView(input).setNegativeButton("Cancel", null).setPositiveButton("Generate") { _, _ ->
+            val base=input.text.toString().trim(); val at=base.lastIndexOf('@'); if(at>0) copyText("Email alias",base.substring(0,at)+"+pb"+System.currentTimeMillis().toString(36)+base.substring(at))
+        }.show()
+    }
+
+    private fun showCalculatorConverter() {
+        val input=EditText(this).apply{hint="125 * 1.18  or  10 km to mi";setSingleLine(true)}
+        AlertDialog.Builder(this).setTitle("Calculator / converter").setView(input).setNegativeButton("Close",null).setPositiveButton("Calculate"){_,_->showInstantAnswer(UltimateTools.answer(input.text.toString()) ?: "No local answer for that expression.")}.show()
+    }
+
+    private fun joinDetectedMeeting() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>a.href).filter(u=>/zoom\\.us|meet\\.google\\.com/i.test(u)).slice(0,5))"){raw->
+            val json=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{"[]"};val arr=runCatching{org.json.JSONArray(json)}.getOrElse{org.json.JSONArray()};val url=arr.optString(0)
+            if(url.isBlank())Toast.makeText(this,"No Zoom or Google Meet link found",Toast.LENGTH_SHORT).show() else runCatching{startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(url)))}.onFailure{Toast.makeText(this,"No meeting app can open this link",Toast.LENGTH_SHORT).show()}
+        }
+    }
+
+    private fun aiImageAltText() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("JSON.stringify(Array.from(document.images).map(i=>({src:i.currentSrc||i.src||'',alt:i.alt||'',title:i.title||''})).filter(x=>x.src).slice(0,30))"){raw->
+            val json=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{"[]"}
+            startActivity(Intent(this,AiCopilotActivity::class.java).apply{putExtra(AiCopilotActivity.EXTRA_PAGE_TITLE,"Image alt-text assistant");putExtra(AiCopilotActivity.EXTRA_PAGE_URL,tab.url);putExtra(AiCopilotActivity.EXTRA_PAGE_TEXT,"Create accurate accessible alt text for these image entries. Do not invent unseen details.\n$json")})
+        }
+    }
+
+    private fun exportCrashLog() {
+        val latest=java.io.File(filesDir,"crashes").listFiles()?.maxByOrNull{it.lastModified()};if(latest==null)Toast.makeText(this,"No crash log recorded",Toast.LENGTH_SHORT).show() else copyText("PrivBrowse crash log",latest.readText().take(30000))
+    }
+
+    private fun performGestureAction(tab:BrowserTab,action:String){
+        when(action){
+            "back"->if(tab.webView.canGoBack())tab.webView.goBack();"forward"->if(tab.webView.canGoForward())tab.webView.goForward();"next_tab"->switchRelativeTab(1);"previous_tab"->switchRelativeTab(-1);"refresh"->tab.webView.reload();"home"->tab.webView.loadUrl(getHomeUrl());"tab_manager"->showTabManager();"new_tab"->openNewTab(getHomeUrl());"close_tab"->tabs.indexOf(tab).takeIf{it>=0}?.let{closeTab(it)};"page_top"->tab.webView.scrollTo(0,0);"page_bottom"->tab.webView.evaluateJavascript("window.scrollTo(0,document.documentElement.scrollHeight)",null)
+        }
+    }
+
+    private fun showInstantAnswer(answer: String) {
+        AlertDialog.Builder(this).setTitle("Instant answer").setMessage(answer).setPositiveButton("Copy") { _, _ -> copyText("Instant answer", answer) }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun showMediaTools() {
+        val speed = arrayOf("0.5x","0.75x","1x","1.25x","1.5x","2x","3x")
+        AlertDialog.Builder(this).setTitle("Video / audio controls").setItems(speed) { _, which ->
+            val value = speed[which].removeSuffix("x").toFloat(); prefs.edit().putFloat(KEY_MEDIA_SPEED,value).apply(); currentTab()?.webView?.evaluateJavascript(UltimateTools.mediaControls(value.toDouble(),prefs.getBoolean(KEY_AUDIO_ONLY,false),prefs.getBoolean(KEY_AUTO_AD_SKIP,false)),null)
+        }.setNeutralButton(if(prefs.getBoolean(KEY_AUDIO_ONLY,false)) "Audio-only: ON" else "Audio-only: OFF") { _, _ -> prefs.edit().putBoolean(KEY_AUDIO_ONLY,!prefs.getBoolean(KEY_AUDIO_ONLY,false)).apply(); currentTab()?.webView?.evaluateJavascript(UltimateTools.mediaControls(prefs.getFloat(KEY_MEDIA_SPEED,1f).toDouble(),prefs.getBoolean(KEY_AUDIO_ONLY,false),prefs.getBoolean(KEY_AUTO_AD_SKIP,false)),null) }
+            .setPositiveButton(if(prefs.getBoolean(KEY_AUTO_AD_SKIP,false)) "Auto skip: ON" else "Auto skip: OFF") { _, _ -> prefs.edit().putBoolean(KEY_AUTO_AD_SKIP,!prefs.getBoolean(KEY_AUTO_AD_SKIP,false)).apply(); currentTab()?.webView?.evaluateJavascript(UltimateTools.mediaControls(prefs.getFloat(KEY_MEDIA_SPEED,1f).toDouble(),prefs.getBoolean(KEY_AUDIO_ONLY,false),prefs.getBoolean(KEY_AUTO_AD_SKIP,false)),null) }
+            .show()
+    }
+
+    private fun compareSearchEngines() {
+        val q = EditText(this).apply { hint = "Search query"; setSingleLine(true) }
+        AlertDialog.Builder(this).setTitle("Compare search engines").setView(q).setNegativeButton("Cancel",null).setPositiveButton("Compare") { _, _ ->
+            val query=q.text.toString().trim(); if(query.isBlank())return@setPositiveButton
+            startActivity(Intent(this,CompareActivity::class.java).apply{putExtra("left","https://www.google.com/search?q=${Uri.encode(query)}");putExtra("right","https://search.brave.com/search?q=${Uri.encode(query)}")})
+        }.show()
+    }
+
+    private fun shareTabsLocal(){
+        val payload=QrExport.encodeTabs(tabs,currentTabIndex)
+        val send=Intent(Intent.ACTION_SEND).apply{type="application/json";putExtra(Intent.EXTRA_TEXT,payload)}
+        startActivity(Intent.createChooser(send,"Share PrivBrowse tab package"))
+    }
+
+    private fun showQrTransfer() {
+        val payload=QrExport.encodeTabs(tabs,currentTabIndex)
+        startActivity(Intent(this,QrTransferActivity::class.java).putExtra(QrTransferActivity.EXTRA_PAYLOAD,payload))
+    }
+
+    private fun openSecondWindow() {
+        val i=Intent(this,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+        startActivity(i)
+    }
+
+    private fun startFloatingBubble() {
+        if(Build.VERSION.SDK_INT>=23 && !android.provider.Settings.canDrawOverlays(this)){
+            startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))
+            Toast.makeText(this,"Allow 'Display over other apps', then enable bubble again.",Toast.LENGTH_LONG).show(); return
+        }
+        androidx.core.content.ContextCompat.startForegroundService(this,Intent(this,FloatingBubbleService::class.java))
+    }
+
+    private fun recordReadingActivity(tab: BrowserTab) {
+        val p=UltimateFeatureStore.prefs(this); val today=java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US).format(java.util.Date()); val last=p.getString(UltimateFeatureStore.KEY_READING_STREAK_DAY,"")
+        if(last==today)return
+        val old=p.getLong(UltimateFeatureStore.KEY_READING_STREAK,0L); val yesterday=java.text.SimpleDateFormat("yyyy-MM-dd",Locale.US).format(java.util.Date(System.currentTimeMillis()-24*3600_000L)); val next=if(last==yesterday)old+1 else 1
+        p.edit().putString(UltimateFeatureStore.KEY_READING_STREAK_DAY,today).putLong(UltimateFeatureStore.KEY_READING_STREAK,next).apply()
+        val badges=UltimateFeatureStore.jsonArray(this,UltimateFeatureStore.KEY_BADGES); if(next>=7 && !containsBadge(badges,"7-day-reader")){badges.put("7-day-reader");UltimateFeatureStore.putArray(this,UltimateFeatureStore.KEY_BADGES,badges)}
+    }
+    private fun containsBadge(a:org.json.JSONArray,value:String)=run{for(i in 0 until a.length())if(a.optString(i)==value)return@run true;false}
+
+    private fun enterBrowserPictureInPicture() {
+        if(Build.VERSION.SDK_INT<Build.VERSION_CODES.O){Toast.makeText(this,"PiP requires Android 8.0+",Toast.LENGTH_SHORT).show();return}
+        if(!currentTab()?.detectedVideoUrls.isNullOrEmpty() || currentTab()?.webView?.url?.contains("youtube",true)==true){enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(16,9)).build())}
+        else Toast.makeText(this,"Open a video page first.",Toast.LENGTH_SHORT).show()
+    }
+
+    private fun closeTabsRandomly() {
+        if(tabs.size<2)return
+        tabs.indices.shuffled().forEach{if(tabs.size>1){val idx=it.coerceAtMost(tabs.lastIndex);if(tabs[idx]!=currentTab())closeTab(idx)}}
+    }
+
+    private fun authenticateVaultThenOpen() {
+        BiometricLock.authenticate(this,{vaultUnlocked=true;prefs.edit().putBoolean(KEY_VAULT_UNLOCKED,true).apply();openNewTab(getHomeUrl(),false,false,true)}, {Toast.makeText(this,"Vault unlock cancelled",Toast.LENGTH_SHORT).show()})
+    }
+    private fun authenticateVault() { BiometricLock.authenticate(this,{vaultUnlocked=true;prefs.edit().putBoolean(KEY_VAULT_UNLOCKED,true).apply();showTabManager()},{Toast.makeText(this,"Vault unlock cancelled",Toast.LENGTH_SHORT).show()}) }
+
+    private fun importTabs(payload:String) {
+        val obj=runCatching{org.json.JSONObject(payload)}.getOrNull()?:return
+        val a=obj.optJSONArray("tabs")?:return
+        var first:Int?=null
+        for(i in 0 until a.length()) { val t=a.optJSONObject(i)?:continue; val before=tabs.size; openNewTab(t.optString("url"),false,t.optBoolean("desktop"),false); tabs.getOrNull(before)?.let{it.title=t.optString("title",it.title);it.isPinned=t.optBoolean("pinned",false);it.groupName=t.optString("group");it.groupColor=t.optInt("groupColor",0)}; if(i==obj.optInt("current",0))first=before }
+        first?.let{if(it in tabs.indices)switchToTab(it)}
+        Toast.makeText(this,"Tabs imported",Toast.LENGTH_SHORT).show()
+    }
+
+    private fun startBackgroundAudio() {
+        val tab=currentTab() ?: return
+        val url=tab.detectedVideoUrls.firstOrNull() ?: tab.url.takeIf{it.matches(Regex("https?://.+\.(mp3|m4a|aac|ogg|wav)(\?.*)?",RegexOption.IGNORE_CASE))}
+        if(url.isNullOrBlank()){Toast.makeText(this,"Open a direct audio/media URL first.",Toast.LENGTH_SHORT).show();return}
+        androidx.core.content.ContextCompat.startForegroundService(this,Intent(this,com.privbrowse.app.ultimate.BackgroundAudioService::class.java).putExtra("url",url))
+    }
+
+    private fun showWishlistDashboard() { startActivity(Intent(this,PrivacyDashboardActivity::class.java)) }
+
+
+    private fun warnOnUnvalidatedWifi() {
+        if(!UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_WIFI_WARNING,true)) return
+        val cm=getSystemService(CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val n=cm.activeNetwork?:return; val caps=cm.getNetworkCapabilities(n)?:return
+        if(caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) && !caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) Toast.makeText(this,"Wi‑Fi network is unvalidated; avoid sensitive browsing until trusted.",Toast.LENGTH_LONG).show()
+    }
+    private fun applyLowPowerPolicy(){
+        if(!UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_LOW_POWER,true))return
+        val bm=getSystemService(BATTERY_SERVICE) as android.os.BatteryManager; val level=bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        if(level in 1..15) currentTab()?.webView?.evaluateJavascript("document.documentElement.style.setProperty('scroll-behavior','auto');document.querySelectorAll('*').forEach(e=>e.style.setProperty('animation-duration','0s','important'));",null)
+    }
+
+    private fun openLeakTests() {
+        openNewTab("https://browserleaks.com/webrtc")
+        openNewTab("https://www.dnsleaktest.com/")
+    }
+
+    private fun guestCleanup() {
+        clearAllBrowsingData()
+        openNewTab(getHomeUrl(), incognito = true)
+    }
+
+    private fun openNotes() {
+        val tab=currentTab() ?: return
+        startActivity(Intent(this, NotesActivity::class.java).apply { putExtra(NotesActivity.EXTRA_TITLE, tab.title); putExtra(NotesActivity.EXTRA_URL, tab.url) })
+    }
+
+    private fun showStickyNoteOverlay() {
+        val tab = currentTab() ?: return
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = GradientDrawable().apply { cornerRadius = dp(14).toFloat(); setColor(ContextCompat.getColor(this@MainActivity, R.color.surface_light)); setStroke(dp(1), ContextCompat.getColor(this@MainActivity, R.color.divider)) }
+        }
+        val title = EditText(this).apply { setSingleLine(true); hint = "Note title"; setText(tab.title.take(50)) }
+        val body = EditText(this).apply { hint = "Type a sticky note..."; minLines = 5 }
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END }
+        val popup = PopupWindow(box, dp(310), dp(300), true).apply { elevation = dp(14).toFloat(); isOutsideTouchable = true }
+        actions.addView(TextView(this).apply { text = "Full notes"; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)); setPadding(dp(8), dp(9), dp(12), dp(9)); setOnClickListener { popup.dismiss(); openNotes() } })
+        actions.addView(TextView(this).apply { text = "Save"; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)); setPadding(dp(12), dp(9), dp(8), dp(9)); setOnClickListener {
+            val arrPrefs = getSharedPreferences("privbrowse_notes", MODE_PRIVATE); val arr = runCatching { org.json.JSONArray(arrPrefs.getString("notes", "[]") ?: "[]") }.getOrElse { org.json.JSONArray() }
+            arr.put(org.json.JSONObject().apply { put("id", System.currentTimeMillis()); put("title", title.text.toString().trim().ifBlank { "Sticky note" }); put("body", body.text.toString()); put("url", tab.url); put("timestamp", System.currentTimeMillis()) })
+            arrPrefs.edit().putString("notes", arr.toString()).apply(); popup.dismiss(); Toast.makeText(this, "Sticky note saved", Toast.LENGTH_SHORT).show()
+        } })
+        box.addView(TextView(this).apply { text = "Sticky note"; textSize = 16f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); setTypeface(typeface, Typeface.BOLD); setPadding(0,0,0,dp(6)) })
+        box.addView(title)
+        box.addView(body, LinearLayout.LayoutParams(-1, dp(160)).apply { topMargin = dp(8) })
+        box.addView(actions)
+        popup.showAtLocation(webViewContainer, Gravity.TOP or Gravity.END, dp(14), dp(74))
+    }
+
+    private fun reverseImageSearch() {
+        val tab = currentTab() ?: return
+        tab.webView.evaluateJavascript("(function(){var i=document.querySelector('img[src],img[currentSrc]');return i?(i.currentSrc||i.src||''):''})()") { raw ->
+            val imageUrl = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }
+            val target = imageUrl.takeIf { it.startsWith("http://") || it.startsWith("https://") } ?: tab.url
+            openNewTab("https://lens.google.com/uploadbyurl?url=${Uri.encode(target)}")
+        }
+    }
+
+    private fun downloadSubtitleCandidate() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("(function(){var t=document.querySelector('track[kind=\"subtitles\"],track[src]');return t&&t.src?t.src:''})()") { raw ->
+            val candidate=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{raw.trim('\"')}
+            if(candidate.startsWith("http://")||candidate.startsWith("https://")) handleDownload(candidate,"text/vtt") else Toast.makeText(this,"No subtitle track found",Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openPageGallery() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("(function(){return JSON.stringify(Array.from(document.images).map(i=>({src:i.currentSrc||i.src||'',alt:i.alt||''})).filter(x=>x.src).slice(0,120))})()") { raw ->
+            val json=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{"[]"}
+            val arr=runCatching{org.json.JSONArray(json)}.getOrElse{org.json.JSONArray()}
+            val html=StringBuilder("<html><meta name='viewport' content='width=device-width,initial-scale=1'><body style='margin:8px;background:#111;color:#eee'><h3>Page gallery</h3><div style='display:grid;grid-template-columns:repeat(2,1fr);gap:6px'>")
+            for(i in 0 until arr.length()){val o=arr.optJSONObject(i)?:continue;val src=android.text.TextUtils.htmlEncode(o.optString("src"));val alt=android.text.TextUtils.htmlEncode(o.optString("alt"));html.append("<figure style='margin:0'><img loading='lazy' src='").append(src).append("' alt='").append(alt).append("' style='width:100%;height:170px;object-fit:cover'><figcaption style='font:11px sans-serif'>").append(alt).append("</figcaption></figure>")}
+            html.append("</div></body></html>")
+            openNewTab("data:text/html;charset=utf-8,"+Uri.encode(html.toString()))
+        }
+    }
+
+    private fun openPrintFriendly() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("(function(){var a=document.querySelector('article,main')||document.body;return '<!doctype html><html><meta name=viewport content=width=device-width><body style=\"font-family:sans-serif;max-width:760px;margin:24px auto;line-height:1.55;padding:0 16px\"><h1>'+document.title+'</h1>'+a.innerHTML+'</body></html>'})()") { raw ->
+            val html=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{"<html><body>No printable content</body></html>"}
+            openNewTab("data:text/html;charset=utf-8,"+Uri.encode(html))
+        }
+    }
+
+    private fun addCalendarEvent() {
+        val tab = currentTab() ?: return
+        val base = Intent(Intent.ACTION_INSERT).setData(android.provider.CalendarContract.Events.CONTENT_URI)
+            .putExtra(android.provider.CalendarContract.Events.TITLE, tab.title)
+            .putExtra(android.provider.CalendarContract.Events.DESCRIPTION, tab.url)
+        tab.webView.evaluateJavascript("(function(){var h=(document.querySelector('h1,h2,[role=heading]')||{}).innerText||document.title||'';var t=document.querySelector('time[datetime]');return JSON.stringify({title:h,start:t&&t.getAttribute('datetime')||''})})()") { raw ->
+            val json = runCatching { org.json.JSONObject(org.json.JSONTokener(raw).nextValue().toString()) }.getOrNull()
+            val eventTitle = json?.optString("title").orEmpty().trim()
+            val startText = json?.optString("start").orEmpty().trim()
+            if (eventTitle.isNotBlank()) base.putExtra(android.provider.CalendarContract.Events.TITLE, eventTitle)
+            parseCalendarStart(startText)?.let { ms -> base.putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, ms); base.putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, ms + 60 * 60_000L) }
+            startActivity(base)
+        }
+    }
+
+    private fun parseCalendarStart(value: String): Long? = runCatching {
+        val normalized = value.substringBefore('.').replace("Z", "")
+        val fmt = if (normalized.length >= 16 && normalized.contains('T')) java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US) else java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        fmt.parse(normalized)?.time
+    }.getOrNull()
+
     private fun copyPageText() {
         currentTab()?.webView?.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
             val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }.replace("\\n", "\n").take(20000)
@@ -1677,7 +2616,7 @@ class MainActivity : AppCompatActivity() {
                 if (cm.hasPrimaryClip() && cm.primaryClipDescription?.label?.toString() == expectedLabel) {
                     cm.setPrimaryClip(ClipData.newPlainText("", ""))
                 }
-            }, 30_000L)
+            }, prefs.getLong(KEY_AUTO_CLEAR_CLIPBOARD_SECONDS, 30L).coerceIn(5L, 300L) * 1000L)
         }
         Toast.makeText(this, "Copied $label", Toast.LENGTH_SHORT).show()
     }
@@ -1714,6 +2653,20 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK || data == null) return
+        if (requestCode == 7801) {
+            val spoken = data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+            if (spoken.isNotBlank()) {
+                when (spoken.trim().lowercase(Locale.getDefault())) {
+                    "back" -> currentTab()?.webView?.goBack()
+                    "forward" -> currentTab()?.webView?.goForward()
+                    "refresh" -> currentTab()?.webView?.reload()
+                    "new tab" -> openNewTab(getHomeUrl())
+                    "close tab" -> if (currentTabIndex in tabs.indices) closeTab(currentTabIndex)
+                    else -> loadInput(spoken.removePrefix("search ").removePrefix("open ").trim())
+                }
+            }
+            return
+        }
         val url = when (requestCode) {
             REQ_BOOKMARKS -> data.getStringExtra(BookmarksActivity.EXTRA_RESULT_URL)
             REQ_HISTORY -> data.getStringExtra(HistoryActivity.EXTRA_RESULT_URL)
@@ -1732,10 +2685,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        saveSessionSnapshot()
+        if (UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_AUTO_REVOKE_MEDIA, false)) mediaPermissionsRevokedForSession = true
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        mediaPermissionsRevokedForSession = false
+        applyImportedTheme()
         if (::adBlocker.isInitialized) adBlocker.refreshFromPreferences()
         applyGlobalSettingsToOpenTabs()
+        updateAiBubble()
+        warnOnUnvalidatedWifi()
+        applyLowPowerPolicy()
+        if (!UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_GHOST, false)) com.privbrowse.app.ultimate.BackupReceiver.schedule(this)
+        com.privbrowse.app.ultimate.CleanupReceiver.schedule(this)
+        if (UltimateFeatureStore.prefs(this).getBoolean(UltimateFeatureStore.KEY_VPN_KILL_SWITCH, false) && !isVpnActive()) Toast.makeText(this, "VPN kill switch is active: browser traffic is blocked.", Toast.LENGTH_LONG).show()
         if (prefs.getBoolean(KEY_DISABLE_SCREEN_CAPTURE, false)) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         if (prefs.getBoolean("biometric_lock", false) && !biometricPromptShowing) {
             biometricPromptShowing = true
@@ -1758,6 +2725,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         saveSessionSnapshot()
+        if (prefs.getBoolean(KEY_GHOST_MODE,false)) { clearAllBrowsingData() }
+        clipboardManager?.removePrimaryClipChangedListener(clipboardListener)
         textToSpeech?.shutdown()
         cookieWipeTasks.values.forEach(cookieWipeHandler::removeCallbacks)
         cookieWipeTasks.clear()

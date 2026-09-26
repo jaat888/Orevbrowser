@@ -25,10 +25,14 @@ data class WeeklyStats(val trackersBlocked: Int, val fingerprintBlocked: Int)
  * network transparency log.
  * Zero-Cloud Guarantee: nothing here ever leaves the device.
  */
-class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
+class DbHelper(context: Context) : SQLiteOpenHelper(context, databaseName(context), null, DB_VERSION) {
 
     companion object {
         private const val DB_NAME = "privbrowse.db"
+        private fun databaseName(context: Context): String {
+            val profile = context.getSharedPreferences("privbrowse_profile", Context.MODE_PRIVATE).getString("active_profile", "personal") ?: "personal"
+            return if (profile == "personal") DB_NAME else "privbrowse_${profile.replace(Regex("[^A-Za-z0-9_-]"), "_")}.db"
+        }
         private const val DB_VERSION = 3
 
         const val TABLE_BOOKMARKS = "bookmarks"
@@ -119,6 +123,10 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     fun clearHistory() {
         writableDatabase.delete(TABLE_HISTORY, null, null)
+    }
+
+    fun deleteHistory(id: Long) {
+        writableDatabase.delete(TABLE_HISTORY, "id = ?", arrayOf(id.toString()))
     }
 
     fun addReadingList(title: String, url: String) {

@@ -42,6 +42,11 @@ class HistoryActivity : AppCompatActivity() {
             val data = Intent().putExtra(EXTRA_RESULT_URL, item.url)
             setResult(Activity.RESULT_OK, data)
             finish()
+        }, onLongClick = { item ->
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Delete history entry?").setMessage(item.url).setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
+                db.deleteHistory(item.id)
+                bindList()
+            }.show()
         })
     }
 

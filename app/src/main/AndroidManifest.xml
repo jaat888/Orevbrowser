@@ -5,16 +5,21 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
+        android:name=".PrivBrowseApplication"
         android:allowBackup="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:theme="@style/Theme.PrivBrowse"
         android:hardwareAccelerated="true"
@@ -24,11 +29,9 @@
             android:name=".ui.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:launchMode="singleTop"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -37,6 +40,16 @@
                 <data android:scheme="https" />
             </intent-filter>
         </activity>
+
+        <activity-alias android:name=".ui.LauncherDefault" android:targetActivity=".ui.MainActivity" android:exported="true" android:icon="@drawable/ic_launcher" android:enabled="true" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".ui.LauncherTools" android:targetActivity=".ui.MainActivity" android:exported="true" android:icon="@drawable/ic_tools" android:enabled="false" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".ui.LauncherHome" android:targetActivity=".ui.MainActivity" android:exported="true" android:icon="@drawable/ic_home" android:enabled="false" android:label="@string/app_name">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
 
         <activity
             android:name=".ui.BookmarksActivity"
@@ -89,9 +102,36 @@
             android:label="Video downloads" />
 
         <activity
+            android:name=".ui.FeatureLabActivity"
+            android:exported="false"
+            android:label="Ultimate Feature Lab" />
+
+        <activity
+            android:name=".ui.NotesActivity"
+            android:exported="false"
+            android:label="Notes" />
+
+        <activity
+            android:name=".ui.CompareActivity"
+            android:exported="false"
+            android:label="Compare" />
+
+        <activity
             android:name=".ui.TransparencyLogActivity"
             android:exported="false"
             android:label="@string/network_log" />
+
+        <activity android:name=".ultimate.QrTransferActivity" android:exported="false" android:label="QR Tab Transfer" />
+        <activity android:name=".ultimate.WatchActivity" android:exported="false" android:label="Page Alerts" />
+        <activity android:name=".ultimate.DownloadQueueActivity" android:exported="false" android:label="Download Queue" />
+        <activity android:name=".ultimate.PdfAnnotateActivity" android:exported="false" android:label="PDF Annotator" />
+        <activity android:name=".ultimate.PrivacyDashboardActivity" android:exported="false" android:label="Weekly Privacy Report" />
+        <activity android:name=".ultimate.ProfileActivity" android:exported="false" android:label="Browser Profiles" />
+        <activity android:name=".ultimate.DashboardActivity" android:exported="false" android:label="Home Dashboard" />
+        <activity android:name=".ultimate.RssActivity" android:exported="false" android:label="RSS Reader" />
+        <activity android:name=".ultimate.GestureEditorActivity" android:exported="false" android:label="Custom Gestures" />
+        <activity android:name=".ultimate.ThemeActivity" android:exported="false" android:label="Themes" />
+        <activity android:name=".ultimate.BackupActivity" android:exported="false" android:label="Settings backup &amp; restore" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -139,6 +179,22 @@
         </service>
 
         <service
+            android:name=".ultimate.FloatingBubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <meta-data android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="privbrowse_floating_bubble" />
+        </service>
+
+        <service
+            android:name=".ultimate.DownloadQueueService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".ultimate.BackgroundAudioService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <service
             android:name=".vpn.PrivBrowseVpnService"
             android:exported="false"
             android:permission="android.permission.BIND_VPN_SERVICE">
@@ -147,5 +203,10 @@
             </intent-filter>
         </service>
 
+            <receiver android:name=".ultimate.PageWatchReceiver" android:exported="false" />
+        <receiver android:name=".ultimate.BackupReceiver" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
+        </receiver>
+        <receiver android:name=".ultimate.CleanupReceiver" android:exported="false" />
     </application>
 </manifest>

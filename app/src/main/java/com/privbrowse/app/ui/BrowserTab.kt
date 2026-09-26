@@ -10,7 +10,15 @@ class BrowserTab(val id: Long, val webView: WebView) {
     var url: String = "https://duckduckgo.com"
     var isDesktopMode: Boolean = false
     var isIncognito: Boolean = false
+    var isPinned: Boolean = false
+    var isVault: Boolean = false
+    var isHibernated: Boolean = false
+    var groupName: String = ""
+    var groupColor: Int = 0
+    var lastActiveAt: Long = System.currentTimeMillis()
     var lastScrollY: Int = 0
+    var resourcesThisPage: Int = 0
+    var pageStartedAt: Long = 0L
     val visitedOrigins: MutableSet<String> = mutableSetOf()
 
     var pageOrigin: String = ""
@@ -31,5 +39,7 @@ class BrowserTab(val id: Long, val webView: WebView) {
         trackersBlocked.set(0)
         fingerprintBlocked.set(0)
         loggedHostsThisPage.clear()
+        resourcesThisPage = 0
+        pageStartedAt = System.currentTimeMillis()
     }
 }

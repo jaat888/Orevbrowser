@@ -84,6 +84,7 @@ class BrowserSettingsActivity : AppCompatActivity() {
         root.addView(actionRow("Page tools", "Find, translate, listen, print/PDF, copy, share and more.") { openMainAction(MainActivity.ACTION_OPEN_PAGE_TOOLS) })
         root.addView(actionRow("AI Copilot", "Optional direct provider connections; keys stay in the secure vault.") { startActivity(Intent(this, AiCopilotActivity::class.java)) })
         root.addView(actionRow("Feature Center", "100+ browser, privacy, performance and AI controls.") { startActivity(Intent(this, FeatureCenterActivity::class.java)) })
+        root.addView(actionRow("Ultimate Feature Lab", "Tab gestures, live search, notes, compare, per-site scripts and wishlist controls.") { startActivity(Intent(this, FeatureLabActivity::class.java)) })
         root.addView(actionRow("Downloads", "View direct media downloads handled by Android DownloadManager.") { startActivity(Intent(this, VideoDownloadsActivity::class.java)) })
         root.addView(actionRow("Tunnel / VPN", "Configure Xray/V2Ray or inspect VPN Gate discovery.") { startActivity(Intent(this, V2RayActivity::class.java)) })
         root.addView(actionRow("Breach checker", "Optional HIBP account breach lookup.") { startActivity(Intent(this, Phase4Activity::class.java)) })
