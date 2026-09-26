@@ -526,6 +526,22 @@ class MainActivity : AppCompatActivity() {
         clipboardManager?.addPrimaryClipChangedListener(clipboardListener)
     }
 
+    private fun offerClipboardLink() {
+        val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        if (!cm.hasPrimaryClip()) return
+        val clip = cm.primaryClip ?: return
+        if (clip.itemCount == 0) return
+        val text = clip.getItemAt(0).text?.toString()?.trim().orEmpty()
+        if (text.isBlank() || !(text.startsWith("http://") || text.startsWith("https://"))) return
+        if (text == currentTab()?.url) return
+        AlertDialog.Builder(this)
+            .setTitle("Open copied link?")
+            .setMessage(text)
+            .setNegativeButton("Ignore", null)
+            .setPositiveButton("Open") { _, _ -> openNewTab(text) }
+            .show()
+    }
+
     private fun loadRecentlyClosed() {
         val array = runCatching { org.json.JSONArray(prefs.getString(KEY_RECENTLY_CLOSED_JSON, "[]")) }.getOrElse { org.json.JSONArray() }
         recentlyClosed.clear()
@@ -1492,6 +1508,15 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun tabThumb(tab: BrowserTab, width: Int = 220, height: Int = 120): Bitmap? = runCatching {
+        if (tab.webView.width <= 0 || tab.webView.height <= 0) return null
+        val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bm)
+        canvas.scale(width.toFloat() / tab.webView.width, height.toFloat() / tab.webView.height)
+        tab.webView.draw(canvas)
+        bm
+    }.getOrNull()
+
     private fun showTabManager() {
         if (tabs.isEmpty()) return
         val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(8), dp(14), dp(10)) }
@@ -1515,15 +1540,6 @@ class MainActivity : AppCompatActivity() {
             val label = (if (tab.isVault) "vault " else "") + (if (tab.isPinned) "pinned " else "") + tab.groupName + " " + tab.title
             return filter.isBlank() || label.contains(filter, true) || tab.url.contains(filter, true)
         }
-
-        fun tabThumb(tab: BrowserTab, width: Int = 220, height: Int = 120): Bitmap? = runCatching {
-            if (tab.webView.width <= 0 || tab.webView.height <= 0) return null
-            val bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            val canvas = android.graphics.Canvas(bm)
-            canvas.scale(width.toFloat() / tab.webView.width, height.toFloat() / tab.webView.height)
-            tab.webView.draw(canvas)
-            bm
-        }.getOrNull()
 
         fun renderGrid(filter: String) {
             viewport.removeAllViews()
@@ -2483,7 +2499,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBackgroundAudio() {
         val tab=currentTab() ?: return
-        val url=tab.detectedVideoUrls.firstOrNull() ?: tab.url.takeIf{it.matches(Regex("https?://.+\.(mp3|m4a|aac|ogg|wav)(\?.*)?",RegexOption.IGNORE_CASE))}
+        val url=tab.detectedVideoUrls.firstOrNull() ?: tab.url.takeIf{it.matches(Regex("https?://.+\\.(mp3|m4a|aac|ogg|wav)(\\?.*)?",RegexOption.IGNORE_CASE))}
         if(url.isNullOrBlank()){Toast.makeText(this,"Open a direct audio/media URL first.",Toast.LENGTH_SHORT).show();return}
         androidx.core.content.ContextCompat.startForegroundService(this,Intent(this,com.privbrowse.app.ultimate.BackgroundAudioService::class.java).putExtra("url",url))
     }
@@ -2533,7 +2549,7 @@ class MainActivity : AppCompatActivity() {
         actions.addView(TextView(this).apply { text = "Save"; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)); setPadding(dp(12), dp(9), dp(8), dp(9)); setOnClickListener {
             val arrPrefs = getSharedPreferences("privbrowse_notes", MODE_PRIVATE); val arr = runCatching { org.json.JSONArray(arrPrefs.getString("notes", "[]") ?: "[]") }.getOrElse { org.json.JSONArray() }
             arr.put(org.json.JSONObject().apply { put("id", System.currentTimeMillis()); put("title", title.text.toString().trim().ifBlank { "Sticky note" }); put("body", body.text.toString()); put("url", tab.url); put("timestamp", System.currentTimeMillis()) })
-            arrPrefs.edit().putString("notes", arr.toString()).apply(); popup.dismiss(); Toast.makeText(this, "Sticky note saved", Toast.LENGTH_SHORT).show()
+            arrPrefs.edit().putString("notes", arr.toString()).apply(); popup.dismiss(); Toast.makeText(this@MainActivity, "Sticky note saved", Toast.LENGTH_SHORT).show()
         } })
         box.addView(TextView(this).apply { text = "Sticky note"; textSize = 16f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); setTypeface(typeface, Typeface.BOLD); setPadding(0,0,0,dp(6)) })
         box.addView(title)

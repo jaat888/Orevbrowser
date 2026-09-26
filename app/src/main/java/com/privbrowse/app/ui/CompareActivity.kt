@@ -45,13 +45,13 @@ class CompareActivity : AppCompatActivity() {
     private fun showDiff() {
         left.evaluateJavascript("document.body ? document.body.innerText : ''") { aRaw ->
             right.evaluateJavascript("document.body ? document.body.innerText : ''") { bRaw ->
-                val a = runCatching { org.json.JSONTokener(aRaw).nextValue().toString() }.getOrElse { aRaw.trim('\\"') }
-                val b = runCatching { org.json.JSONTokener(bRaw).nextValue().toString() }.getOrElse { bRaw.trim('\\"') }
+                val a = runCatching { org.json.JSONTokener(aRaw).nextValue().toString() }.getOrElse { aRaw.trim('\\', '"') }
+                val b = runCatching { org.json.JSONTokener(bRaw).nextValue().toString() }.getOrElse { bRaw.trim('\\', '"') }
                 val linesA = a.lines().take(1000); val linesB = b.lines().take(1000); val setB = linesB.toSet(); val setA = linesA.toSet()
                 val out = StringBuilder("Only in first page:\n")
-                linesA.filter { it.isNotBlank() && it !in setB }.take(80).forEach { out.append("− ").append(it).append('\\n') }
+                linesA.filter { it.isNotBlank() && it !in setB }.take(80).forEach { out.append("− ").append(it).append('\n') }
                 out.append("\\nOnly in second page:\n")
-                linesB.filter { it.isNotBlank() && it !in setA }.take(80).forEach { out.append("+ ").append(it).append('\\n') }
+                linesB.filter { it.isNotBlank() && it !in setA }.take(80).forEach { out.append("+ ").append(it).append('\n') }
                 if (out.length < 35) out.append("No text-only differences found in the sampled content.")
                 AlertDialog.Builder(this).setTitle("Text diff").setMessage(out.toString()).setPositiveButton("Close", null).show()
             }
