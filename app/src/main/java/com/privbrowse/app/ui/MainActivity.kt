@@ -201,6 +201,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var privacyBadge: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var webViewContainer: FrameLayout
+    private lateinit var swipeRefresh: androidx.swiperefreshlayout.widget.SwipeRefreshLayout
     private lateinit var tabStrip: RecyclerView
     private lateinit var btnBack: ImageButton
     private lateinit var btnForward: ImageButton
@@ -374,6 +375,10 @@ class MainActivity : AppCompatActivity() {
         privacyBadge = findViewById(R.id.privacyBadge)
         progressBar = findViewById(R.id.progressBar)
         webViewContainer = findViewById(R.id.webViewContainer)
+        swipeRefresh = findViewById(R.id.swipeRefresh)
+        swipeRefresh.setColorSchemeResources(R.color.accent)
+        swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface_light)
+        swipeRefresh.setOnRefreshListener { currentTab()?.webView?.reload() }
         tabStrip = findViewById(R.id.tabStrip)
         btnBack = findViewById(R.id.btnBack)
         btnForward = findViewById(R.id.btnForward)
@@ -1172,6 +1177,42 @@ class MainActivity : AppCompatActivity() {
             return null
         }
 
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+            super.onReceivedError(view, request, error)
+            if (request.isForMainFrame) {
+                showErrorPage(view, request.url.toString(), error.description?.toString() ?: "Couldn't load this page")
+            }
+        }
+
+        override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
+            super.onReceivedHttpError(view, request, errorResponse)
+            if (request.isForMainFrame && errorResponse.statusCode >= 400) {
+                showErrorPage(view, request.url.toString(), "HTTP error ${errorResponse.statusCode}")
+            }
+        }
+
+        private fun showErrorPage(view: WebView, failedUrl: String, message: String) {
+            val safeUrl = android.text.Html.escapeHtml(failedUrl)
+            val safeMsg = android.text.Html.escapeHtml(message)
+            val html = """
+                <html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                  body{font-family:sans-serif;background:#101120;color:#EEF0FA;display:flex;flex-direction:column;
+                       align-items:center;justify-content:center;min-height:100vh;margin:0;padding:32px;text-align:center;box-sizing:border-box}
+                  h2{margin:0 0 10px;font-size:20px}
+                  p{color:#9497B8;font-size:12.5px;word-break:break-all;margin:0 0 26px;max-width:320px}
+                  a{background:#00C2A8;color:#0A0F1F;padding:12px 30px;border-radius:24px;text-decoration:none;font-weight:bold;font-size:14px}
+                </style></head>
+                <body>
+                  <h2>This page couldn't load</h2>
+                  <p>$safeMsg<br>$safeUrl</p>
+                  <a href="$safeUrl">Retry</a>
+                </body></html>
+            """.trimIndent()
+            view.loadDataWithBaseURL(null, html, "text/html", "UTF-8", failedUrl)
+            if (tab == currentTab()) { progressBar.visibility = View.GONE; btnRefresh.setImageResource(R.drawable.ic_refresh) }
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val original = request.url.toString()
             val uri = Uri.parse(original)
@@ -1253,7 +1294,7 @@ class MainActivity : AppCompatActivity() {
             }
             progressBar.visibility = View.GONE
             btnRefresh.setImageResource(R.drawable.ic_refresh)
-            // Phase 2: heuristically auto-dismiss common cookie-consent banners.
+            if (tab == currentTab()) swipeRefresh.isRefreshing = false
             if (prefs.getBoolean(KEY_COOKIE_BANNER, true)) view.evaluateJavascript(ConsentAutoHandler.SCRIPT, null)
             if (url != null) {
                 tab.url = url

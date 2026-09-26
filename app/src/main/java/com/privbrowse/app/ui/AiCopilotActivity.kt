@@ -100,7 +100,7 @@ class AiCopilotActivity : AppCompatActivity() {
         root.addView(toolbar())
 
         scroll = ScrollView(this).apply {
-            fillViewport = true
+            isFillViewport = true
             clipToPadding = false
             setPadding(dp(12), dp(2), dp(12), dp(12))
         }
@@ -721,7 +721,7 @@ class AiCopilotActivity : AppCompatActivity() {
 
     private fun pasteClipboard() {
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = cm.primaryClip?.getItemAt(0)?.coerceToText(this).orEmpty()
+        val clip = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
         if (clip.isBlank()) { status.text = "Clipboard is empty"; return }
         prompt.setText(clip.take(12000))
         prompt.setSelection(prompt.text?.length ?: 0)
