@@ -35,9 +35,13 @@ class PrivBrowseVpnService : android.net.VpnService() {
     private var candidatePool: List<VpnServer> = emptyList()
     private var rotationMinutes = 0
 
-    private val rotationRunnable: Runnable = Runnable {
-        // No-op by design until a real OpenVPN engine exists.
-        handler.removeCallbacks(rotationRunnable)
+    private lateinit var rotationRunnable: Runnable
+
+    init {
+        rotationRunnable = Runnable {
+            // No-op by design until a real OpenVPN engine exists.
+            handler.removeCallbacks(rotationRunnable)
+        }
     }
 
     override fun onCreate() {
