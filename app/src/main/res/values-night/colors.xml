@@ -1,0 +1,7 @@
+<resources>
+    <!-- Dark-mode overrides so directly-referenced "light" tokens still look right -->
+    <color name="background_light">@color/background_dark</color>
+    <color name="surface_light">@color/surface_dark</color>
+    <color name="text_light">@color/text_dark</color>
+    <color name="text_muted_light">@color/text_muted_dark</color>
+</resources>

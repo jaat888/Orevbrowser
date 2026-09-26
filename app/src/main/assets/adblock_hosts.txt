@@ -1,0 +1,33 @@
+# PrivBrowse baseline block list (Phase 1)
+# One host per line. Extend this file freely — Phase 4 adds custom list import.
+doubleclick.net
+googlesyndication.com
+googleadservices.com
+google-analytics.com
+googletagmanager.com
+googletagservices.com
+adservice.google.com
+adnxs.com
+facebook.net
+connect.facebook.net
+scorecardresearch.com
+outbrain.com
+taboola.com
+criteo.com
+adsrvr.org
+moatads.com
+quantserve.com
+rubiconproject.com
+pubmatic.com
+openx.net
+amazon-adsystem.com
+bidswitch.net
+casalemedia.com
+media.net
+adform.net
+mopub.com
+appsflyer.com
+branch.io
+mixpanel.com
+segment.io
+hotjar.com

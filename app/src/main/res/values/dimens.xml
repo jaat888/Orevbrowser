@@ -1,0 +1,14 @@
+<resources>
+    <dimen name="corner_radius_lg">20dp</dimen>
+    <dimen name="corner_radius_md">14dp</dimen>
+    <dimen name="corner_radius_sm">10dp</dimen>
+    <dimen name="corner_radius_pill">28dp</dimen>
+
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_lg">16dp</dimen>
+
+    <dimen name="elevation_card">2dp</dimen>
+    <dimen name="elevation_bar">6dp</dimen>
+</resources>

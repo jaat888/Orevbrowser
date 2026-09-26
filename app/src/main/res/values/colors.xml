@@ -1,0 +1,36 @@
+<resources>
+    <!-- Brand -->
+    <color name="primary">#1B1F3B</color>
+    <color name="primary_dark">#10132A</color>
+    <color name="primary_light">#272C52</color>
+    <color name="accent">#00C2A8</color>
+    <color name="accent_dark">#00A18A</color>
+    <color name="on_accent">#0A0F1F</color>
+
+    <!-- Surfaces -->
+    <color name="background_light">#F4F5FA</color>
+    <color name="background_dark">#101120</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_dark">#1B1D30</color>
+    <color name="surface_light_alt">#ECEDF6</color>
+    <color name="surface_dark_alt">#262946</color>
+
+    <!-- Text -->
+    <color name="text_light">#1A1A2E</color>
+    <color name="text_dark">#EEF0FA</color>
+    <color name="text_muted_light">#6B6F8A</color>
+    <color name="text_muted_dark">#9497B8</color>
+
+    <!-- Misc -->
+    <color name="divider">#1FFFFFFF</color>
+    <color name="ripple">#33FFFFFF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="danger">#E5484D</color>
+
+    <!-- Phase 3 — privacy score grade colors -->
+    <color name="grade_a">#2FBF71</color>
+    <color name="grade_b">#8BC34A</color>
+    <color name="grade_c">#FFC93C</color>
+    <color name="grade_d">#FF9F43</color>
+    <color name="grade_f">#E5484D</color>
+</resources>

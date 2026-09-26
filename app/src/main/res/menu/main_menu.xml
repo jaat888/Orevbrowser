@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_bookmarks" android:title="@string/bookmarks" />
+    <item android:id="@+id/menu_history" android:title="@string/history" />
+    <item android:id="@+id/menu_network_log" android:title="@string/network_log" />
+    <item android:id="@+id/menu_add_bookmark" android:title="@string/add_bookmark" />
+    <item android:id="@+id/menu_incognito_tab" android:title="@string/incognito_tab" />
+    <item android:id="@+id/menu_vpn" android:title="@string/vpn_menu" />
+    <item android:id="@+id/menu_phase4" android:title="@string/phase4_menu" />
+    <item android:id="@+id/menu_v2ray" android:title="@string/v2ray_menu" />
+    <item android:id="@+id/menu_ai_copilot" android:title="@string/ai_copilot_menu" />
+    <item android:id="@+id/menu_video_downloads" android:title="@string/video_downloads_menu" />
+    <item android:id="@+id/menu_reader_mode" android:title="@string/reader_mode_menu" />
+    <item android:id="@+id/menu_panic" android:title="@string/panic_menu" />
+    <item
+        android:id="@+id/menu_dark_mode"
+        android:checkable="true"
+        android:title="@string/dark_mode" />
+    <item
+        android:id="@+id/menu_desktop_mode"
+        android:checkable="true"
+        android:title="@string/desktop_mode" />
+</menu>

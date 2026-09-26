@@ -1,0 +1,27 @@
+# Phase 3 — known device/browser-fingerprinting and anti-fraud vendor
+# domains. Separate from adblock_hosts.txt so blocks from this list can be
+# reported honestly as "fingerprinting attempt" rather than generic
+# "tracker" in the Network Transparency Log and Weekly Privacy Report.
+fingerprintjs.com
+fpjs.io
+iovation.com
+threatmetrix.com
+online-metrix.net
+maxmind.com
+forter.com
+perimeterx.net
+pxchk.net
+distilnetworks.com
+datadome.co
+seon.io
+sift.com
+sift.net
+riskified.com
+arkoselabs.com
+funcaptcha.com
+signifyd.com
+castle.io
+fingerprint.com
+deviceatlas.com
+augur.io
+clientjs.org
