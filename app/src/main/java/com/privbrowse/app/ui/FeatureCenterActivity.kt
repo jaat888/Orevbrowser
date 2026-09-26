@@ -65,6 +65,7 @@ class FeatureCenterActivity : AppCompatActivity() {
         rootList.addView(hero())
         rootList.addView(searchCard(), lp().apply { topMargin = dp(10) })
 
+        smartSection()
         privacySection()
         engineSection()
         tabsSection()
@@ -150,7 +151,7 @@ class FeatureCenterActivity : AppCompatActivity() {
         val box = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), dp(10), dp(11), dp(10)) }
         search = EditText(this@FeatureCenterActivity).apply {
             hint = "Search 100+ features"
-            singleLine = true
+            setSingleLine(true)
             setPadding(dp(12), dp(3), dp(12), dp(3))
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -160,6 +161,25 @@ class FeatureCenterActivity : AppCompatActivity() {
         }
         box.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
         addView(box)
+    }
+
+    private fun smartSection() {
+        section("Smart presets & quick actions") {
+            action("Balanced privacy preset", "Turn on the core privacy protections without breaking most sites.") { openMain(MainActivity.ACTION_APPLY_PRESET, "balanced") }
+            action("Strict privacy preset", "Use strict ad blocking plus stronger privacy defaults for new pages.") { openMain(MainActivity.ACTION_APPLY_PRESET, "strict") }
+            action("Speed / data saver preset", "Reduce heavy assets and favor cache reuse for faster browsing on slower links.") { openMain(MainActivity.ACTION_APPLY_PRESET, "speed") }
+            action("Reading focus preset", "Reader-friendly defaults for long articles, larger text and less visual noise.") { openMain(MainActivity.ACTION_APPLY_PRESET, "reading") }
+            action("One-tap cleanup", "Clear cookies, web storage and network diagnostics together.") { openMain(MainActivity.ACTION_PANIC) }
+            action("AI privacy review", "Ask the configured AI to inspect the current page for visible privacy and tracking concerns.") { openAi("Review the current page for visible privacy risks, tracking signals, permission requests and data-collection concerns. Base the answer only on the page context and clearly separate observed facts from uncertainty.") }
+            action("AI action plan", "Turn the current page into concrete next steps.") { openAi("Turn the current page into a practical action plan with prioritized next steps and any important caveats.") }
+            action("AI table extractor", "Convert structured information on the page into a compact table.") { openAi("Extract the most useful structured information from the current page into a compact Markdown table. Do not invent missing values.") }
+            action("AI bilingual summary", "Summarize the current page in English and Hindi.") { openAi("Summarize the current page twice: first in clear English, then in clear Hindi. Keep both concise and faithful to the page.") }
+            action("AI verify-needed checklist", "List claims or numbers that should be independently verified.") { openAi("Identify claims, statistics, dates or statements on the current page that should be independently verified. Explain what evidence would be needed without pretending you verified them.") }
+            action("Search engine", "Switch between DuckDuckGo, Brave Search, Bing, Google, Startpage and Ecosia.") { chooseSearchEngine() }
+            action("Theme", "Quickly switch the browser between light and dark appearance.") { toggleTheme() }
+            action("Clear site data", "Remove cookies and storage for the current page's origin.") { openMain(MainActivity.ACTION_OPEN_SITE_CONTROLS) }
+            action("Open private tab", "Start a fresh private browsing tab immediately.") { openMain(MainActivity.ACTION_OPEN_PRIVATE_TAB) }
+        }
     }
 
     private fun privacySection() {
@@ -443,9 +463,10 @@ class FeatureCenterActivity : AppCompatActivity() {
             }.setNegativeButton(R.string.close, null).show()
     }
 
-    private fun openMain(action: String) {
+    private fun openMain(action: String, preset: String? = null) {
         startActivity(Intent(this, MainActivity::class.java).apply {
             this.action = action
+            if (preset != null) putExtra(MainActivity.EXTRA_PRESET, preset)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         })
     }
@@ -469,7 +490,7 @@ class FeatureCenterActivity : AppCompatActivity() {
     }
 
     private fun editHomePage() {
-        val input = EditText(this).apply { singleLine = true; setText(prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL)); selectAll() }
+        val input = EditText(this).apply { setSingleLine(true); setText(prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL)); selectAll() }
         AlertDialog.Builder(this).setTitle("Home page").setView(input).setPositiveButton("Save") { _, _ ->
             val value = input.text.toString().trim()
             if (value.startsWith("http://") || value.startsWith("https://")) prefs.edit().putString(MainActivity.KEY_HOME_URL, value).apply() else Toast.makeText(this, "Use an http/https URL", Toast.LENGTH_SHORT).show()

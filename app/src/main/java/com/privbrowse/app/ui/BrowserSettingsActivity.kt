@@ -271,7 +271,7 @@ class BrowserSettingsActivity : AppCompatActivity() {
 
     private fun editHomePage() {
         val input = EditText(this).apply {
-            singleLine = true
+            setSingleLine(true)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             setText(prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL))
             selectAll()

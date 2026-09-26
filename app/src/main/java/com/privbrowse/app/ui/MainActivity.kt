@@ -147,6 +147,8 @@ class MainActivity : AppCompatActivity() {
         const val ACTION_OPEN_PRIVATE_TAB = "com.privbrowse.app.action.PRIVATE_TAB"
         const val ACTION_OPEN_PAGE_TOOLS = "com.privbrowse.app.action.PAGE_TOOLS"
         const val ACTION_PANIC = "com.privbrowse.app.action.PANIC"
+        const val ACTION_APPLY_PRESET = "com.privbrowse.app.action.APPLY_PRESET"
+        const val EXTRA_PRESET = "com.privbrowse.app.extra.PRESET"
 
         private const val REQ_BOOKMARKS = 100
         private const val REQ_HISTORY = 101
@@ -255,6 +257,7 @@ class MainActivity : AppCompatActivity() {
             ACTION_OPEN_PRIVATE_TAB -> { restoredSession = true; openNewTab(getHomeUrl(), incognito = true); true }
             ACTION_OPEN_PAGE_TOOLS -> if (currentTab() != null) { showPageTools(); true } else false
             ACTION_PANIC -> { showPanicDialog(); true }
+            ACTION_APPLY_PRESET -> { applyPreset(intent?.getStringExtra(EXTRA_PRESET).orEmpty()); true }
             else -> false
         }
         if (handled) setIntent(Intent(intent).setAction(null))
@@ -551,7 +554,7 @@ class MainActivity : AppCompatActivity() {
         val webView = currentTab()?.webView ?: return
         val input = EditText(this).apply {
             hint = "Find text on this page"
-            singleLine = true
+            setSingleLine(true)
             inputType = android.text.InputType.TYPE_CLASS_TEXT
         }
         val wrap = FrameLayout(this).apply {
@@ -627,6 +630,69 @@ class MainActivity : AppCompatActivity() {
             com.privbrowse.app.adblock.BlockLevel.STRICT -> getString(R.string.adblock_level_strict)
         }
         Toast.makeText(this, "${getString(R.string.adblock_menu)}: $label", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun applyPreset(name: String) {
+        val editor = prefs.edit()
+        when (name.lowercase()) {
+            "balanced" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.NORMAL)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to true, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_MEDIA_PERMISSIONS to true, KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true,
+                    KEY_THIRD_PARTY_COOKIES to true, KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true,
+                    KEY_HTTPS_FIRST to true, KEY_BLOCK_FILE_ACCESS to true, KEY_BLOCK_CONTENT_ACCESS to true,
+                    KEY_DISABLE_FORM_HELPERS to true, KEY_JAVASCRIPT to true, KEY_IMAGES to true, KEY_FAST_CACHE to true,
+                    KEY_DATA_SAVER to false, KEY_NO_CACHE to false, KEY_READER_MODE to true, KEY_AUTO_READER to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+                editor.putInt(KEY_TEXT_ZOOM, 100)
+            }
+            "strict" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.STRICT)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to true, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_MEDIA_PERMISSIONS to true, KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true,
+                    KEY_THIRD_PARTY_COOKIES to true, KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true,
+                    KEY_FRESH_IDENTITY to true, KEY_HTTPS_FIRST to true, KEY_BLOCK_FILE_ACCESS to true,
+                    KEY_BLOCK_CONTENT_ACCESS to true, KEY_DISABLE_FORM_HELPERS to true, KEY_JAVASCRIPT to true,
+                    KEY_IMAGES to true, KEY_FAST_CACHE to true, KEY_DATA_SAVER to false, KEY_NO_CACHE to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+            }
+            "speed" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.NORMAL)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to true, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true, KEY_THIRD_PARTY_COOKIES to true,
+                    KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true, KEY_HTTPS_FIRST to true,
+                    KEY_JAVASCRIPT to true, KEY_IMAGES to false, KEY_DOM_STORAGE to true, KEY_FAST_CACHE to true,
+                    KEY_DATA_SAVER to true, KEY_NO_CACHE to false, KEY_OVERVIEW_MODE to true, KEY_ENABLE_ZOOM to true
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+            }
+            "reading" -> {
+                adBlocker.setLevel(com.privbrowse.app.adblock.BlockLevel.NORMAL)
+                mapOf(
+                    KEY_BLOCK_POPUPS to true, KEY_BLOCK_SOCIAL to true, KEY_BLOCK_GEOLOCATION to true,
+                    KEY_BLOCK_WEB_NOTIFICATIONS to true, KEY_BLOCK_MIXED_CONTENT to true, KEY_THIRD_PARTY_COOKIES to true,
+                    KEY_STRIP_TRACKING to true, KEY_DNT to true, KEY_GPC to true, KEY_HTTPS_FIRST to true,
+                    KEY_READER_MODE to true, KEY_AUTO_READER to true, KEY_TEXT_EXTRACTION to true, KEY_TTS to true,
+                    KEY_TRANSLATE to true, KEY_IMAGES to true, KEY_JAVASCRIPT to true, KEY_FAST_CACHE to true,
+                    KEY_DATA_SAVER to false, KEY_NO_CACHE to false, KEY_SHOW_SCROLLBARS to false
+                ).forEach { (key, value) -> editor.putBoolean(key, value) }
+                editor.putInt(KEY_TEXT_ZOOM, 125)
+                editor.putInt(KEY_DEFAULT_FONT_SIZE, 18)
+                editor.putInt(KEY_MIN_FONT_SIZE, 10)
+                editor.putInt(KEY_MONO_FONT_SIZE, 14)
+            }
+            else -> {
+                Toast.makeText(this, "Unknown preset", Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+        editor.apply()
+        adBlocker.refreshFromPreferences()
+        applyGlobalSettingsToOpenTabs()
+        currentTab()?.webView?.reload()
+        Toast.makeText(this, "${name.replaceFirstChar { it.uppercase() }} preset applied", Toast.LENGTH_SHORT).show()
     }
 
     private fun toggleDarkMode() {
@@ -868,7 +934,7 @@ class MainActivity : AppCompatActivity() {
     private fun showTabManager() {
         if (tabs.isEmpty()) return
         val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(8), dp(18), dp(10)) }
-        val search = EditText(this).apply { hint = "Search tabs"; singleLine = true }
+        val search = EditText(this).apply { hint = "Search tabs"; setSingleLine(true) }
         wrapper.addView(search, LinearLayout.LayoutParams(-1, dp(50)))
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         fun smallAction(label: String, click: () -> Unit) = TextView(this).apply {
@@ -890,10 +956,10 @@ class MainActivity : AppCompatActivity() {
                 val row = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(10), dp(9), dp(6), dp(9)); isClickable = true; setOnClickListener { switchToTab(index) }
                 }
-                val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                text.addView(TextView(this@MainActivity).apply { text = label; textSize = 14f; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); maxLines = 1 })
-                text.addView(TextView(this@MainActivity).apply { text = tab.url; textSize = 11f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); maxLines = 1 })
-                row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
+                val textColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                textColumn.addView(TextView(this@MainActivity).apply { setText(label); textSize = 14f; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); maxLines = 1 })
+                textColumn.addView(TextView(this@MainActivity).apply { setText(tab.url); textSize = 11f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); maxLines = 1 })
+                row.addView(textColumn, LinearLayout.LayoutParams(0, -2, 1f))
                 row.addView(TextView(this@MainActivity).apply { text = "×"; textSize = 22f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); setPadding(dp(12), 0, 0, 0); setOnClickListener { closeTab(index) } })
                 list.addView(row)
             }

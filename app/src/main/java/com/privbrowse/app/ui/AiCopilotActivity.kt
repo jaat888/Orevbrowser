@@ -354,7 +354,7 @@ class AiCopilotActivity : AppCompatActivity() {
 
         keyField = TextInputEditText(this).apply {
             hint = "Paste API key"
-            singleLine = true
+            setSingleLine(true)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         root.addView(TextInputLayout(this).apply {
@@ -365,7 +365,7 @@ class AiCopilotActivity : AppCompatActivity() {
 
         endpointField = TextInputEditText(this).apply {
             hint = "https://your-host/v1/chat/completions"
-            singleLine = true
+            setSingleLine(true)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
         val endpointWrap = TextInputLayout(this).apply {
@@ -746,7 +746,7 @@ class AiCopilotActivity : AppCompatActivity() {
     private fun promptCustomModel(provider: AiProvider) {
         val field = EditText(this).apply {
             hint = "Exact model ID"
-            singleLine = true
+            setSingleLine(true)
         }
         AlertDialog.Builder(this)
             .setTitle("Add custom model")

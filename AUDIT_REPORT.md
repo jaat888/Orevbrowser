@@ -8,9 +8,10 @@
 - Added model discovery and configurable custom OpenAI-compatible endpoints.
 - Fixed secure-key lookup to use the provider-specific Keystore-backed key consistently.
 - Reworked AI UI into a dedicated clean chat workspace with page context, tool chips, setup/test controls, retry/stop and chat export.
-- Expanded Feature Center to 147 controls/shortcuts.
+- Expanded Feature Center to 157 controls/shortcuts, including one-tap privacy/performance presets and AI quick actions.
 - Added search engines: Startpage and Ecosia in addition to DuckDuckGo, Brave Search, Bing and Google.
 - Added cookie acceptance control, history-saving control, desktop-by-default, screen-awake option, scrollbar control, font/text sizing and lifecycle cleanup options.
+- Fixed reported CI Kotlin errors: explicit EditText single-line setters, TextView receiver shadowing in the tab manager, explicit TextInputLayout corner-radius setter, and AGP BuildConfig generation.
 
 ## Static validation
 

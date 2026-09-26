@@ -2,12 +2,13 @@
 
 ## Scope
 
-This build keeps the everyday browser UI compact and moves advanced controls into a searchable Feature Center. The center currently exposes **147 feature controls/shortcuts** across privacy, WebView behavior, tabs, page tools, AI, downloads/connectivity, lifecycle, and security/diagnostics.
+This build keeps the everyday browser UI compact and moves advanced controls into a searchable Feature Center. The center currently exposes **157 feature controls/shortcuts** across privacy, WebView behavior, tabs, page tools, AI, downloads/connectivity, lifecycle, and security/diagnostics.
 
 ## Feature groups
 
 | Group | Examples |
 |---|---|
+| Smart presets & AI quick actions | Balanced/Strict privacy presets, Speed/Data Saver preset, Reading Focus preset, AI privacy review, action plan, table extraction, bilingual summary, verify-needed checklist |
 | Privacy & tracking | Ad/tracker levels, pop-up blocking, social-embed blocking, GPC, Do Not Track, tracking-parameter stripping, HTTPS-first, cookie controls, per-site controls, privacy grade, transparency log, panic wipe |
 | Browser engine & performance | JavaScript, images, DOM storage, media gesture, Safe Browsing, mixed-content blocking, file/content access, form helpers, cache modes, zoom, viewport, overview mode, stalled-load timeout, desktop-by-default, scrollbars, font sizing |
 | Tabs & navigation | Private tabs, private link opens, session restore, recently closed tabs, close-all confirmation, auto reader, compact tab strip, scroll restore, external scheme handoff, history switch, tab manager, bookmarks, reading list |
