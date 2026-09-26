@@ -30,6 +30,13 @@ object DomainPrivacyStore {
         prefs(context).edit().putStringSet(AUTO_INCOGNITO, normalized).apply()
     }
 
+    fun addAutoIncognito(context: Context, host: String) {
+        val normalized = normalizeHost(host) ?: return
+        val current = getAutoIncognito(context)
+        current.add(normalized)
+        setAutoIncognito(context, current)
+    }
+
     fun isAutoIncognito(context: Context, host: String?): Boolean {
         val h = host?.let(::normalizeHost) ?: return false
         return getAutoIncognito(context).any { h == it || h.endsWith(".$it") }

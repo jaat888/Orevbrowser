@@ -29,11 +29,19 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     companion object {
         private const val DB_NAME = "privbrowse.db"
-        private const val DB_VERSION = 2
+        private const val DB_VERSION = 3
 
         const val TABLE_BOOKMARKS = "bookmarks"
         const val TABLE_HISTORY = "history"
         const val TABLE_NETWORK_LOG = "network_log"
+        const val TABLE_READING_LIST = "reading_list"
+
+        private const val CREATE_READING_LIST_SQL =
+            "CREATE TABLE IF NOT EXISTS $TABLE_READING_LIST (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "title TEXT, " +
+                "url TEXT NOT NULL, " +
+                "timestamp INTEGER NOT NULL)"
 
         private const val CREATE_NETWORK_LOG_SQL =
             "CREATE TABLE IF NOT EXISTS $TABLE_NETWORK_LOG (" +
@@ -61,6 +69,7 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 "timestamp INTEGER NOT NULL)"
         )
         db.execSQL(CREATE_NETWORK_LOG_SQL)
+        db.execSQL(CREATE_READING_LIST_SQL)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -70,6 +79,9 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         // new Phase 3 table is added for anyone upgrading from version 1.
         if (oldVersion < 2) {
             db.execSQL(CREATE_NETWORK_LOG_SQL)
+        }
+        if (oldVersion < 3) {
+            db.execSQL(CREATE_READING_LIST_SQL)
         }
     }
 
@@ -107,6 +119,26 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
 
     fun clearHistory() {
         writableDatabase.delete(TABLE_HISTORY, null, null)
+    }
+
+    fun addReadingList(title: String, url: String) {
+        if (url.isBlank()) return
+        val values = ContentValues().apply {
+            put("title", title)
+            put("url", url)
+            put("timestamp", System.currentTimeMillis())
+        }
+        writableDatabase.insert(TABLE_READING_LIST, null, values)
+    }
+
+    fun getReadingList(): List<LinkItem> = queryAll(TABLE_READING_LIST)
+
+    fun removeReadingList(id: Long) {
+        writableDatabase.delete(TABLE_READING_LIST, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun clearReadingList() {
+        writableDatabase.delete(TABLE_READING_LIST, null, null)
     }
 
     private fun queryAll(table: String): List<LinkItem> {

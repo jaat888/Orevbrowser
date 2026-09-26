@@ -1,12 +1,16 @@
 package com.privbrowse.app.ui
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,8 +20,6 @@ import android.util.Patterns
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.KeyEvent
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -30,11 +32,13 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.speech.tts.TextToSpeech
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import java.util.Locale
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.webkit.WebSettingsCompat
@@ -65,11 +69,93 @@ class MainActivity : AppCompatActivity() {
         const val PREFS = "privbrowse_prefs"
         const val KEY_DARK_MODE = "dark_mode"
         const val KEY_FRESH_IDENTITY = "fresh_identity_per_tab"
+        const val KEY_DNT = "do_not_track"
+        const val KEY_GPC = "global_privacy_control"
+        const val KEY_COOKIE_BANNER = "cookie_banner"
+        const val KEY_SHOW_PRIVACY_BADGE = "show_privacy_badge"
+        const val KEY_JAVASCRIPT = "javascript_enabled"
+        const val KEY_IMAGES = "images_enabled"
+        const val KEY_SAFE_BROWSING = "safe_browsing"
+        const val KEY_MEDIA_GESTURE = "media_user_gesture"
+        const val KEY_RESTORE_SESSION = "restore_session"
+        const val KEY_HTTPS_FIRST = "https_first"
+        const val KEY_CLEAR_ON_EXIT = "clear_on_exit"
+        const val KEY_HOME_URL = "home_url"
+        const val KEY_SEARCH_ENGINE = "search_engine"
+        const val KEY_SESSION_URLS = "session_urls"
+        const val KEY_BLOCK_POPUPS = "block_popups"
+        const val KEY_BLOCK_SOCIAL = "block_social"
+        const val KEY_BLOCK_GEOLOCATION = "block_geolocation"
+        const val KEY_BLOCK_MEDIA_PERMISSIONS = "block_media_permissions"
+        const val KEY_BLOCK_WEB_NOTIFICATIONS = "block_web_notifications"
+        const val KEY_THIRD_PARTY_COOKIES = "third_party_cookies_blocked"
+        const val KEY_STRIP_TRACKING = "strip_tracking"
+        const val KEY_DATA_SAVER = "data_saver"
+        const val KEY_FAST_CACHE = "fast_cache"
+        const val KEY_NO_CACHE = "no_cache"
+        const val KEY_DOM_STORAGE = "dom_storage"
+        const val KEY_ENABLE_ZOOM = "enable_zoom"
+        const val KEY_WIDE_VIEWPORT = "wide_viewport"
+        const val KEY_OVERVIEW_MODE = "overview_mode"
+        const val KEY_DARKEN_PAGES = "darken_pages"
+        const val KEY_NEW_TABS_PRIVATE = "new_tabs_private"
+        const val KEY_OPEN_LINKS_PRIVATE = "open_links_private"
+        const val KEY_RECENT_TABS = "recent_tabs"
+        const val KEY_CONFIRM_CLOSE_ALL = "confirm_close_all"
+        const val KEY_AUTO_READER = "auto_reader"
+        const val KEY_COMPACT_TABS = "compact_tabs"
+        const val KEY_SCROLL_RESTORE = "scroll_restore"
+        const val KEY_EXTERNAL_HANDOFF = "external_handoff"
+        const val KEY_DOWNLOAD_CONFIRM = "download_confirm"
+        const val KEY_BLOCK_MIXED_CONTENT = "block_mixed_content"
+        const val KEY_BLOCK_FILE_ACCESS = "block_file_access"
+        const val KEY_BLOCK_CONTENT_ACCESS = "block_content_access"
+        const val KEY_DISABLE_FORM_HELPERS = "disable_form_helpers"
+        const val KEY_AUTO_STOP_LOADING = "auto_stop_loading"
+        const val KEY_CLEAR_CACHE_EXIT = "clear_cache_exit"
+        const val KEY_CLEAR_COOKIES_EXIT = "clear_cookies_exit"
+        const val KEY_CLEAR_STORAGE_EXIT = "clear_storage_exit"
+        const val KEY_CLEAR_PAGE_HISTORY_EXIT = "clear_page_history_exit"
+        const val KEY_INCOGNITO_NO_CACHE = "incognito_no_cache"
+        const val KEY_PRUNE_LOGS = "prune_logs"
+        const val KEY_AI_CONTEXT = "ai_context"
+        const val KEY_AI_HISTORY = "ai_history"
+        const val KEY_AI_COMPACT = "ai_compact"
+        const val KEY_AI_SHOW_MODEL = "ai_show_model"
+        const val KEY_READER_MODE = "reader_mode"
+        const val KEY_TTS = "tts"
+        const val KEY_TRANSLATE = "translate"
+        const val KEY_READING_LIST = "reading_list"
+        const val KEY_TEXT_EXTRACTION = "text_extraction"
+        const val KEY_VIDEO_DETECTION = "video_detection"
+        const val KEY_DISABLE_SCREEN_CAPTURE = "disable_screen_capture"
+        const val KEY_SAVE_HISTORY = "save_history"
+        const val KEY_DESKTOP_DEFAULT = "desktop_default"
+        const val KEY_ACCEPT_COOKIES = "accept_cookies"
+        const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
+        const val KEY_SHOW_SCROLLBARS = "show_scrollbars"
+        const val KEY_DEFAULT_FONT_SIZE = "default_font_size"
+        const val KEY_MIN_FONT_SIZE = "min_font_size"
+        const val KEY_MONO_FONT_SIZE = "mono_font_size"
+        const val KEY_TEXT_ZOOM = "text_zoom"
+        const val KEY_CLEAR_NETWORK_LOG_EXIT = "clear_network_log_exit"
+        const val KEY_PURGE_CONSENT_EXIT = "purge_consent_exit"
+        const val KEY_AUTO_FOCUS_ADDRESS = "auto_focus_address"
+
+        const val ACTION_OPEN_SITE_CONTROLS = "com.privbrowse.app.action.SITE_CONTROLS"
+        const val ACTION_OPEN_TAB_MANAGER = "com.privbrowse.app.action.TAB_MANAGER"
+        const val ACTION_OPEN_PRIVATE_TAB = "com.privbrowse.app.action.PRIVATE_TAB"
+        const val ACTION_OPEN_PAGE_TOOLS = "com.privbrowse.app.action.PAGE_TOOLS"
+        const val ACTION_PANIC = "com.privbrowse.app.action.PANIC"
+
         private const val REQ_BOOKMARKS = 100
         private const val REQ_HISTORY = 101
+        private const val REQ_READING_LIST = 103
         private const val REQ_NOTIFICATIONS = 102
 
         private const val THIRTY_DAYS_MILLIS = 30L * 24 * 60 * 60 * 1000
+        private const val MAX_REOPENED = 15
+        private const val MAX_RESTORED_TABS = 12
 
         private const val DESKTOP_UA =
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -85,7 +171,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnForward: ImageButton
     private lateinit var btnRefresh: ImageButton
     private lateinit var btnHome: ImageButton
-    private lateinit var btnTabs: ImageButton
+    private lateinit var btnTools: ImageButton
+    private lateinit var btnTabs: TextView
     private lateinit var btnMenu: ImageButton
 
     private lateinit var adBlocker: AdBlocker
@@ -100,7 +187,15 @@ class MainActivity : AppCompatActivity() {
     private var nextTabId = 1L
     private val cookieWipeHandler = Handler(Looper.getMainLooper())
     private val cookieWipeTasks = mutableMapOf<Long, Runnable>()
+    private val loadTimeoutTasks = mutableMapOf<Long, Runnable>()
+    private val recentlyClosed = ArrayDeque<ClosedTabSnapshot>()
     private var biometricPromptShowing = false
+    private var restoredSession = false
+    private var textToSpeech: TextToSpeech? = null
+    private var pendingWebPermissionRequest: android.webkit.PermissionRequest? = null
+    private val REQ_WEB_MEDIA = 610
+
+    private data class ClosedTabSnapshot(val title: String, val url: String, val incognito: Boolean, val desktop: Boolean)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
@@ -112,6 +207,7 @@ class MainActivity : AppCompatActivity() {
         )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        if (prefs.getBoolean(KEY_DISABLE_SCREEN_CAPTURE, false)) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
 
         adBlocker = AdBlocker(this)
         db = DbHelper(this)
@@ -124,24 +220,74 @@ class MainActivity : AppCompatActivity() {
         // is a no-op, so this is safe to call on every launch.
         WeeklyReportScheduler.scheduleIfNeeded(this)
         requestNotificationPermissionIfNeeded()
-        db.pruneNetworkLog(THIRTY_DAYS_MILLIS)
+        if (prefs.getBoolean(KEY_PRUNE_LOGS, true)) db.pruneNetworkLog(THIRTY_DAYS_MILLIS)
+        if (prefs.getBoolean(KEY_KEEP_SCREEN_ON, false)) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (prefs.getBoolean(KEY_AUTO_FOCUS_ADDRESS, false)) {
+            urlBar.postDelayed({ urlBar.requestFocus(); (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).showSoftInput(urlBar, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT) }, 180)
+        }
 
-        openNewTab(resolveInitialUrl(intent))
+        handleIntentAction(intent)
+        if (!restoredSession) {
+            restoreSessionOrOpenInitial()
+        }
     }
 
     private fun resolveInitialUrl(intent: Intent?): String {
         val incoming = intent?.data?.toString()?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
-        return incoming?.let(TrackingParamStripper::clean) ?: HOME_URL
+        return incoming?.let { if (prefs.getBoolean(KEY_STRIP_TRACKING, true)) TrackingParamStripper.clean(it) else it } ?: getHomeUrl()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (handleIntentAction(intent)) return
         val incoming = intent.data?.toString()?.takeIf { it.startsWith("http://") || it.startsWith("https://") } ?: return
-        val cleaned = TrackingParamStripper.clean(incoming)
+        val cleaned = if (prefs.getBoolean(KEY_STRIP_TRACKING, true)) TrackingParamStripper.clean(incoming) else incoming
         val host = Uri.parse(cleaned).host
         if (DomainPrivacyStore.isAutoIncognito(this, host) && currentTab()?.isIncognito != true) openNewTab(cleaned, true)
         else currentTab()?.webView?.loadUrl(cleaned)
+    }
+
+    private fun handleIntentAction(intent: Intent?): Boolean {
+        val handled = when (intent?.action) {
+            ACTION_OPEN_SITE_CONTROLS -> if (currentTab() != null) { showSiteControls(); true } else false
+            ACTION_OPEN_TAB_MANAGER -> if (currentTab() != null) { showTabManager(); true } else false
+            ACTION_OPEN_PRIVATE_TAB -> { restoredSession = true; openNewTab(getHomeUrl(), incognito = true); true }
+            ACTION_OPEN_PAGE_TOOLS -> if (currentTab() != null) { showPageTools(); true } else false
+            ACTION_PANIC -> { showPanicDialog(); true }
+            else -> false
+        }
+        if (handled) setIntent(Intent(intent).setAction(null))
+        return handled
+    }
+
+    private fun restoreSessionOrOpenInitial() {
+        if (prefs.getBoolean(KEY_RESTORE_SESSION, true)) {
+            val raw = prefs.getStringSet(KEY_SESSION_URLS, emptySet()).orEmpty().toList()
+            // StringSet does not preserve order; saveSessionSnapshot additionally stores the first
+            // tab in a dedicated key so the common case still opens the most recently focused page first.
+            val first = prefs.getString("session_first_url", null)
+            val urls = buildList {
+                first?.takeIf { it.startsWith("http://") || it.startsWith("https://") }?.let(::add)
+                raw.filter { it != first }.take(MAX_RESTORED_TABS - 1).forEach(::add)
+            }
+            if (urls.isNotEmpty()) {
+                restoredSession = true
+                urls.forEachIndexed { index, url -> openNewTab(url, incognito = false) }
+                return
+            }
+        }
+        openNewTab(resolveInitialUrl(intent))
+    }
+
+    private fun saveSessionSnapshot() {
+        if (!prefs.getBoolean(KEY_RESTORE_SESSION, true) || tabs.isEmpty()) return
+        val urls = tabs.filter { !it.isIncognito }.map { it.url }.filter { it.startsWith("http://") || it.startsWith("https://") }
+        if (urls.isEmpty()) return
+        prefs.edit()
+            .putStringSet(KEY_SESSION_URLS, urls.toSet())
+            .putString("session_first_url", currentTab()?.url?.takeIf { it.startsWith("http://") || it.startsWith("https://") })
+            .apply()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -166,6 +312,7 @@ class MainActivity : AppCompatActivity() {
         btnForward = findViewById(R.id.btnForward)
         btnRefresh = findViewById(R.id.btnRefresh)
         btnHome = findViewById(R.id.btnHome)
+        btnTools = findViewById(R.id.btnTools)
         btnTabs = findViewById(R.id.btnTabs)
         btnMenu = findViewById(R.id.btnMenu)
     }
@@ -186,7 +333,8 @@ class MainActivity : AppCompatActivity() {
      * page gets that row back; it reappears the moment a second tab exists.
      */
     private fun updateTabStripVisibility() {
-        tabStrip.visibility = if (tabs.size > 1) View.VISIBLE else View.GONE
+        val compact = prefs.getBoolean(KEY_COMPACT_TABS, true)
+        tabStrip.visibility = if (compact && tabs.size <= 1) View.GONE else View.VISIBLE
     }
 
     private fun setupToolbar() {
@@ -208,9 +356,14 @@ class MainActivity : AppCompatActivity() {
             val webView = currentTab()?.webView
             if (webView?.canGoForward() == true) webView.goForward()
         }
-        btnRefresh.setOnClickListener { currentTab()?.webView?.reload() }
-        btnHome.setOnClickListener { currentTab()?.webView?.loadUrl(HOME_URL) }
-        btnTabs.setOnClickListener { openNewTab(HOME_URL) }
+        btnRefresh.setOnClickListener {
+            val tab = currentTab() ?: return@setOnClickListener
+            if (tab.webView.progress in 1..99) tab.webView.stopLoading() else tab.webView.reload()
+        }
+        btnHome.setOnClickListener { currentTab()?.webView?.loadUrl(getHomeUrl()) }
+        btnTools.setOnClickListener { showPageTools() }
+        btnTabs.setOnClickListener { openNewTab(getHomeUrl()) }
+        btnTabs.setOnLongClickListener { showTabManager(); true }
         btnMenu.setOnClickListener { showOverflowMenu(it) }
         privacyBadge.setOnClickListener { showPrivacyScoreDialog() }
     }
@@ -295,6 +448,8 @@ class MainActivity : AppCompatActivity() {
         })
 
         sheetHeader(content, "Browse")
+        sheetRow(content, "Tab manager", "Search • restore • close others") { dialog.dismiss(); showTabManager() }
+        sheetRow(content, "Recently closed", if (recentlyClosed.isEmpty()) "None" else recentlyClosed.size.toString()) { dialog.dismiss(); showRecentlyClosed() }
         sheetRow(content, getString(R.string.bookmarks)) {
             dialog.dismiss(); startActivityForResult(Intent(this, BookmarksActivity::class.java), REQ_BOOKMARKS)
         }
@@ -302,7 +457,10 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss(); startActivityForResult(Intent(this, HistoryActivity::class.java), REQ_HISTORY)
         }
         sheetRow(content, getString(R.string.add_bookmark)) { dialog.dismiss(); addCurrentPageBookmark() }
-        sheetRow(content, getString(R.string.incognito_tab)) { dialog.dismiss(); openNewTab(HOME_URL, incognito = true) }
+        sheetRow(content, getString(R.string.incognito_tab)) { dialog.dismiss(); openNewTab(getHomeUrl(), incognito = true) }
+        sheetRow(content, getString(R.string.find_in_page)) { dialog.dismiss(); showFindInPageDialog() }
+        sheetRow(content, getString(R.string.share_page)) { dialog.dismiss(); shareCurrentPage() }
+        sheetRow(content, "Reading list") { dialog.dismiss(); startActivityForResult(Intent(this, ReadingListActivity::class.java), REQ_READING_LIST) }
 
         sheetDivider(content)
         sheetHeader(content, "Privacy & security")
@@ -318,16 +476,28 @@ class MainActivity : AppCompatActivity() {
         sheetRow(content, getString(R.string.v2ray_menu)) {
             dialog.dismiss(); startActivity(Intent(this, V2RayActivity::class.java))
         }
+        val adBlockLevelLabel = when (adBlocker.level) {
+            com.privbrowse.app.adblock.BlockLevel.OFF -> getString(R.string.adblock_level_off)
+            com.privbrowse.app.adblock.BlockLevel.NORMAL -> getString(R.string.adblock_level_normal)
+            com.privbrowse.app.adblock.BlockLevel.STRICT -> getString(R.string.adblock_level_strict)
+        }
+        sheetRow(content, getString(R.string.adblock_menu), adBlockLevelLabel) {
+            dialog.dismiss(); cycleAdBlockLevel()
+        }
         sheetRow(content, getString(R.string.panic_menu)) { dialog.dismiss(); showPanicDialog() }
         val identityOn = prefs.getBoolean(KEY_FRESH_IDENTITY, true)
         sheetRow(content, getString(R.string.fresh_identity_menu), if (identityOn) "On" else "Off") {
             dialog.dismiss(); toggleFreshIdentity()
         }
+        sheetRow(content, "Site controls") { dialog.dismiss(); showSiteControls() }
+        sheetRow(content, "Settings & feature center") { dialog.dismiss(); startActivity(Intent(this, BrowserSettingsActivity::class.java)) }
+        sheetRow(content, "Feature Center", "100+ controls & shortcuts") { dialog.dismiss(); startActivity(Intent(this, FeatureCenterActivity::class.java)) }
 
         sheetDivider(content)
         sheetHeader(content, "Tools")
+        sheetRow(content, "Page tools", "Find • PDF • listen • translate") { dialog.dismiss(); showPageTools() }
         sheetRow(content, getString(R.string.ai_copilot_menu)) {
-            dialog.dismiss(); startActivity(Intent(this, AiCopilotActivity::class.java))
+            dialog.dismiss(); openAiCopilot()
         }
         sheetRow(content, getString(R.string.video_downloads_menu)) { dialog.dismiss(); openDetectedVideoDownloads() }
         sheetRow(content, getString(R.string.reader_mode_menu)) {
@@ -355,15 +525,65 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun openAiCopilot() {
+        val tab = currentTab() ?: return
+        if (!prefs.getBoolean(KEY_AI_CONTEXT, true)) {
+            startActivity(Intent(this, AiCopilotActivity::class.java)); return
+        }
+        tab.webView.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
+            val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('"') }
+                .replace("\\n", "\n").take(12000)
+            startActivity(Intent(this, AiCopilotActivity::class.java).apply {
+                putExtra(AiCopilotActivity.EXTRA_PAGE_TITLE, tab.title)
+                putExtra(AiCopilotActivity.EXTRA_PAGE_URL, tab.url)
+                putExtra(AiCopilotActivity.EXTRA_PAGE_TEXT, text)
+            })
+        }
+    }
+
     private fun addCurrentPageBookmark() {
         val tab = currentTab() ?: return
         db.addBookmark(tab.title, tab.url)
         Toast.makeText(this, "Bookmarked", Toast.LENGTH_SHORT).show()
     }
 
+    private fun showFindInPageDialog() {
+        val webView = currentTab()?.webView ?: return
+        val input = EditText(this).apply {
+            hint = "Find text on this page"
+            singleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        }
+        val wrap = FrameLayout(this).apply {
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(input, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(54)))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.find_in_page)
+            .setView(wrap)
+            .setPositiveButton("Find") { _, _ ->
+                val query = input.text.toString().trim()
+                if (query.isNotEmpty()) webView.findAllAsync(query)
+            }
+            .setNegativeButton(R.string.close) { _, _ -> webView.clearMatches() }
+            .show()
+    }
+
+    private fun shareCurrentPage() {
+        val tab = currentTab() ?: return
+        val share = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, tab.title)
+            putExtra(Intent.EXTRA_TEXT, tab.url)
+        }
+        startActivity(Intent.createChooser(share, getString(R.string.share_page)))
+    }
+
     // ---------- Phase 3: per-site privacy score ----------
 
     private fun updatePrivacyBadge(tab: BrowserTab) {
+        privacyBadge.visibility = if (prefs.getBoolean(KEY_SHOW_PRIVACY_BADGE, true)) View.VISIBLE else View.GONE
+        if (!prefs.getBoolean(KEY_SHOW_PRIVACY_BADGE, true)) return
         if (tab != currentTab()) return
         val isHttps = tab.url.startsWith("https://")
         val result = PrivacyScore.compute(
@@ -399,6 +619,16 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun cycleAdBlockLevel() {
+        val newLevel = adBlocker.cycleLevel()
+        val label = when (newLevel) {
+            com.privbrowse.app.adblock.BlockLevel.OFF -> getString(R.string.adblock_level_off)
+            com.privbrowse.app.adblock.BlockLevel.NORMAL -> getString(R.string.adblock_level_normal)
+            com.privbrowse.app.adblock.BlockLevel.STRICT -> getString(R.string.adblock_level_strict)
+        }
+        Toast.makeText(this, "${getString(R.string.adblock_menu)}: $label", Toast.LENGTH_SHORT).show()
+    }
+
     private fun toggleDarkMode() {
         val newValue = !prefs.getBoolean(KEY_DARK_MODE, false)
         prefs.edit().putBoolean(KEY_DARK_MODE, newValue).apply()
@@ -425,7 +655,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyWebViewDarkMode(webView: WebView, dark: Boolean) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, dark)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, dark && prefs.getBoolean(KEY_DARKEN_PAGES, true))
         }
     }
 
@@ -445,26 +675,42 @@ class MainActivity : AppCompatActivity() {
     // ---------- Tab management ----------
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun openNewTab(url: String, incognito: Boolean = false) {
+    private fun openNewTab(url: String, incognito: Boolean = false, desktop: Boolean = false) {
+        val actualIncognito = incognito || prefs.getBoolean(KEY_NEW_TABS_PRIVATE, false)
         val webView = WebView(this)
         if (mobileUserAgent.isEmpty()) mobileUserAgent = webView.settings.userAgentString
 
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
+        webView.settings.javaScriptEnabled = prefs.getBoolean(KEY_JAVASCRIPT, true)
+        webView.settings.domStorageEnabled = prefs.getBoolean(KEY_DOM_STORAGE, true)
+        webView.settings.loadsImagesAutomatically = prefs.getBoolean(KEY_IMAGES, true)
+        webView.settings.mediaPlaybackRequiresUserGesture = prefs.getBoolean(KEY_MEDIA_GESTURE, true)
         webView.settings.databaseEnabled = false
-        webView.settings.allowFileAccess = false
-        webView.settings.allowContentAccess = false
+        @Suppress("DEPRECATION") webView.settings.saveFormData = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
+        @Suppress("DEPRECATION") webView.settings.savePassword = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
+        webView.settings.allowFileAccess = !prefs.getBoolean(KEY_BLOCK_FILE_ACCESS, true)
+        webView.settings.allowContentAccess = !prefs.getBoolean(KEY_BLOCK_CONTENT_ACCESS, true)
+        webView.settings.setSupportMultipleWindows(!prefs.getBoolean(KEY_BLOCK_POPUPS, true))
+        webView.settings.javaScriptCanOpenWindowsAutomatically = !prefs.getBoolean(KEY_BLOCK_POPUPS, true)
+        webView.settings.setSupportZoom(prefs.getBoolean(KEY_ENABLE_ZOOM, true))
+        webView.settings.builtInZoomControls = prefs.getBoolean(KEY_ENABLE_ZOOM, true)
+        webView.settings.displayZoomControls = false
+        webView.settings.useWideViewPort = prefs.getBoolean(KEY_WIDE_VIEWPORT, false)
+        webView.settings.loadWithOverviewMode = prefs.getBoolean(KEY_OVERVIEW_MODE, true)
+        webView.isVerticalScrollBarEnabled = prefs.getBoolean(KEY_SHOW_SCROLLBARS, true)
+        webView.isHorizontalScrollBarEnabled = prefs.getBoolean(KEY_SHOW_SCROLLBARS, false)
+        webView.isScrollbarFadingEnabled = true
+        webView.settings.defaultFontSize = prefs.getInt(KEY_DEFAULT_FONT_SIZE, 16).coerceIn(8, 30)
+        webView.settings.minimumFontSize = prefs.getInt(KEY_MIN_FONT_SIZE, 8).coerceIn(1, 24)
+        webView.settings.defaultFixedFontSize = prefs.getInt(KEY_MONO_FONT_SIZE, 13).coerceIn(6, 30)
+        webView.settings.textZoom = prefs.getInt(KEY_TEXT_ZOOM, 100).coerceIn(50, 200)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             webView.settings.allowFileAccessFromFileURLs = false
             webView.settings.allowUniversalAccessFromFileURLs = false
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) webView.settings.safeBrowsingEnabled = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) webView.settings.safeBrowsingEnabled = prefs.getBoolean(KEY_SAFE_BROWSING, true)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            webView.settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            webView.settings.mixedContentMode = if (prefs.getBoolean(KEY_BLOCK_MIXED_CONTENT, true)) android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW else android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         }
-        webView.settings.setSupportZoom(true)
-        webView.settings.builtInZoomControls = true
-        webView.settings.displayZoomControls = false
         applyWebViewDarkMode(webView, prefs.getBoolean(KEY_DARK_MODE, false))
 
         // Fresh identity per tab: each tab gets its own canvas/audio/WebGL/
@@ -481,23 +727,33 @@ class MainActivity : AppCompatActivity() {
                 setOf("*")
             )
         }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(webView, privacySignalsScript(), setOf("*"))
+            WebViewCompat.addDocumentStartJavaScript(webView, contentGuardScript(), setOf("*"))
+        }
 
         // Phase 2: third-party cookies are blocked on every tab, always.
-        CookiePolicy.configureWebView(webView)
-        if (incognito) {
-            // Phase 2: incognito tabs skip the disk cache; their cookies/
-            // storage are wiped per-origin the moment the tab closes
-            // (see closeTab), giving functional session isolation without
-            // needing a second WebView process.
+        CookiePolicy.configureWebView(webView, prefs.getBoolean(KEY_THIRD_PARTY_COOKIES, true), prefs.getBoolean(KEY_ACCEPT_COOKIES, true))
+        if (actualIncognito && prefs.getBoolean(KEY_INCOGNITO_NO_CACHE, true)) {
             webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+        } else when {
+            prefs.getBoolean(KEY_NO_CACHE, false) -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+            prefs.getBoolean(KEY_FAST_CACHE, true) || prefs.getBoolean(KEY_DATA_SAVER, false) -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
+            else -> webView.settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
 
         val tab = BrowserTab(nextTabId++, webView)
-        tab.isIncognito = incognito
+        tab.isIncognito = actualIncognito
+        tab.isDesktopMode = desktop || prefs.getBoolean(KEY_DESKTOP_DEFAULT, false)
+        applyUserAgent(tab)
         webView.webViewClient = BrowserWebViewClient(tab)
         webView.webChromeClient = BrowserChromeClient(tab)
         webView.setDownloadListener { downloadUrl, _, _, mimeType, _ ->
             handleDownload(downloadUrl, mimeType)
+        }
+        webView.setOnLongClickListener { handleLongPress(webView) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            webView.setOnScrollChangeListener { _, _, scrollY, _, _ -> tab.lastScrollY = scrollY }
         }
 
         tabs.add(tab)
@@ -509,6 +765,7 @@ class MainActivity : AppCompatActivity() {
 
         tabAdapter.notifyItemInserted(tabs.size - 1)
         updateTabStripVisibility()
+        updateTabCount()
         switchToTab(tabs.size - 1)
         webView.loadUrl(url)
     }
@@ -518,8 +775,10 @@ class MainActivity : AppCompatActivity() {
         tabs.forEachIndexed { index, tab -> tab.webView.visibility = if (index == position) View.VISIBLE else View.GONE }
         currentTabIndex = position
         tabAdapter.selectedPosition = position
+        updateTabCount()
         urlBar.setText(currentTab()?.url ?: "")
         currentTab()?.let { updatePrivacyBadge(it) }
+        updateNavState()
     }
 
     private fun closeTab(position: Int) {
@@ -527,7 +786,12 @@ class MainActivity : AppCompatActivity() {
         val oldCurrent = currentTabIndex
         val closingCurrent = position == oldCurrent
         val tab = tabs.removeAt(position)
+        if (prefs.getBoolean(KEY_RECENT_TABS, true) && !tab.isIncognito && (tab.url.startsWith("http://") || tab.url.startsWith("https://"))) {
+            recentlyClosed.addFirst(ClosedTabSnapshot(tab.title, tab.url, false, tab.isDesktopMode))
+            while (recentlyClosed.size > MAX_REOPENED) recentlyClosed.removeLast()
+        }
         cookieWipeTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+        loadTimeoutTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
         if (tab.isIncognito) {
             CookiePolicy.wipeOrigins(tab.visitedOrigins)
             tab.webView.clearCache(true)
@@ -537,10 +801,11 @@ class MainActivity : AppCompatActivity() {
         tab.webView.destroy()
         tabAdapter.notifyItemRemoved(position)
         updateTabStripVisibility()
+        updateTabCount()
 
         if (tabs.isEmpty()) {
             currentTabIndex = 0
-            openNewTab(HOME_URL)
+            openNewTab(getHomeUrl())
             return
         }
         val newPosition = when {
@@ -551,7 +816,117 @@ class MainActivity : AppCompatActivity() {
         switchToTab(newPosition)
     }
 
+    private fun updateTabCount() {
+        btnTabs.text = tabs.size.toString()
+        btnTabs.contentDescription = "${tabs.size} tab${if (tabs.size == 1) "" else "s"}"
+    }
+
     private fun currentTab(): BrowserTab? = tabs.getOrNull(currentTabIndex)
+
+    private fun updateNavState() {
+        val webView = currentTab()?.webView
+        btnBack.isEnabled = webView?.canGoBack() == true
+        btnForward.isEnabled = webView?.canGoForward() == true
+        btnBack.alpha = if (btnBack.isEnabled) 1f else 0.35f
+        btnForward.alpha = if (btnForward.isEnabled) 1f else 0.35f
+    }
+
+    private fun getHomeUrl(): String = prefs.getString(KEY_HOME_URL, HOME_URL) ?: HOME_URL
+
+    private fun searchUrl(query: String): String = when (prefs.getString(KEY_SEARCH_ENGINE, "DuckDuckGo")) {
+        "Brave Search" -> "https://search.brave.com/search?q=${Uri.encode(query)}"
+        "Bing" -> "https://www.bing.com/search?q=${Uri.encode(query)}"
+        "Google" -> "https://www.google.com/search?q=${Uri.encode(query)}"
+        "Startpage" -> "https://www.startpage.com/sp/search?query=${Uri.encode(query)}"
+        "Ecosia" -> "https://www.ecosia.org/search?q=${Uri.encode(query)}"
+        else -> SEARCH_URL_PREFIX + Uri.encode(query)
+    }
+
+    private fun duplicateCurrentTab() {
+        val tab = currentTab() ?: return
+        openNewTab(tab.url, tab.isIncognito, tab.isDesktopMode)
+    }
+
+    private fun showRecentlyClosed() {
+        if (recentlyClosed.isEmpty()) {
+            Toast.makeText(this, "No recently closed tabs", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = recentlyClosed.map { it.title.ifBlank { it.url } }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Recently closed")
+            .setItems(labels) { _, which ->
+                val snapshot = recentlyClosed.elementAt(which)
+                recentlyClosed.remove(snapshot)
+                openNewTab(snapshot.url, snapshot.incognito, snapshot.desktop)
+            }
+            .setNeutralButton("Clear") { _, _ -> recentlyClosed.clear() }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun showTabManager() {
+        if (tabs.isEmpty()) return
+        val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(8), dp(18), dp(10)) }
+        val search = EditText(this).apply { hint = "Search tabs"; singleLine = true }
+        wrapper.addView(search, LinearLayout.LayoutParams(-1, dp(50)))
+        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        fun smallAction(label: String, click: () -> Unit) = TextView(this).apply {
+            text = label; textSize = 12f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent_dark)); setPadding(dp(5), dp(8), dp(12), dp(8)); setOnClickListener { click() }
+        }
+        actions.addView(smallAction("Duplicate") { duplicateCurrentTab() })
+        actions.addView(smallAction("Close others") { closeOtherTabs() })
+        actions.addView(smallAction("Close all") { closeAllTabs() })
+        wrapper.addView(actions)
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val scroll = ScrollView(this).apply { addView(list) }
+        wrapper.addView(scroll, LinearLayout.LayoutParams(-1, dp(360)))
+
+        fun render(filter: String) {
+            list.removeAllViews()
+            tabs.forEachIndexed { index, tab ->
+                val label = (if (tab.isIncognito) "Private · " else "") + (tab.title.ifBlank { tab.url })
+                if (filter.isNotBlank() && !label.contains(filter, ignoreCase = true) && !tab.url.contains(filter, ignoreCase = true)) return@forEachIndexed
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(10), dp(9), dp(6), dp(9)); isClickable = true; setOnClickListener { switchToTab(index) }
+                }
+                val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                text.addView(TextView(this@MainActivity).apply { text = label; textSize = 14f; setTypeface(typeface, Typeface.BOLD); setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light)); maxLines = 1 })
+                text.addView(TextView(this@MainActivity).apply { text = tab.url; textSize = 11f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); maxLines = 1 })
+                row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(TextView(this@MainActivity).apply { text = "×"; textSize = 22f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light)); setPadding(dp(12), 0, 0, 0); setOnClickListener { closeTab(index) } })
+                list.addView(row)
+            }
+        }
+        render("")
+        search.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { render(s?.toString().orEmpty()) }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+        val dialog = BottomSheetDialog(this)
+        dialog.setContentView(wrapper)
+        dialog.show()
+    }
+
+    private fun closeOtherTabs() {
+        val keep = currentTabIndex
+        for (i in tabs.indices.reversed()) if (i != keep) closeTab(i)
+    }
+
+    private fun closeAllTabs() {
+        val perform = {
+            val indices = tabs.indices.reversed().toList()
+            indices.forEach { closeTab(it) }
+        }
+        if (!prefs.getBoolean(KEY_CONFIRM_CLOSE_ALL, true)) { perform(); return }
+        AlertDialog.Builder(this)
+            .setTitle("Close all tabs?")
+            .setMessage("All open tabs will be closed.")
+            .setNegativeButton(R.string.close, null)
+            .setPositiveButton("Close all") { _, _ -> perform() }
+            .show()
+    }
 
     // ---------- URL / search bar ----------
 
@@ -572,10 +947,10 @@ class MainActivity : AppCompatActivity() {
         val looksLikeUrl = Patterns.WEB_URL.matcher(input).matches() && !input.contains(" ")
         val resolved = when {
             input.startsWith("http://") || input.startsWith("https://") -> input
-            looksLikeUrl -> "https://$input"
-            else -> SEARCH_URL_PREFIX + Uri.encode(input)
+            looksLikeUrl -> if (prefs.getBoolean(KEY_HTTPS_FIRST, true)) "https://$input" else "http://$input"
+            else -> searchUrl(input)
         }
-        return TrackingParamStripper.clean(resolved)
+        return if (prefs.getBoolean(KEY_STRIP_TRACKING, true)) TrackingParamStripper.clean(resolved) else resolved
     }
 
     private fun clearFocusAndHideKeyboard() {
@@ -614,7 +989,16 @@ class MainActivity : AppCompatActivity() {
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val original = request.url.toString()
-            val cleaned = TrackingParamStripper.clean(original)
+            val uri = Uri.parse(original)
+            if (uri.scheme != "http" && uri.scheme != "https") {
+                if (prefs.getBoolean(KEY_EXTERNAL_HANDOFF, true)) {
+                    runCatching { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                        .onFailure { Toast.makeText(this@MainActivity, "No app can open this link", Toast.LENGTH_SHORT).show() }
+                    return true
+                }
+                return false
+            }
+            val cleaned = if (prefs.getBoolean(KEY_STRIP_TRACKING, true)) TrackingParamStripper.clean(original) else original
             val host = Uri.parse(cleaned).host
             if (DomainPrivacyStore.isAutoIncognito(this@MainActivity, host) && tab.isIncognito.not()) {
                 openNewTab(cleaned, incognito = true)
@@ -633,6 +1017,17 @@ class MainActivity : AppCompatActivity() {
             if (url != null) {
                 tab.url = url
                 tab.resetPageStats() // Phase 3: tracker/fingerprint counts + logged hosts are per page-load
+                loadTimeoutTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+                if (prefs.getBoolean(KEY_AUTO_STOP_LOADING, false)) {
+                    val task = Runnable {
+                        if (tabs.contains(tab) && tab.webView.progress in 0..99) {
+                            tab.webView.stopLoading()
+                            if (tab == currentTab()) Toast.makeText(this@MainActivity, "Page load timed out; loading stopped", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    loadTimeoutTasks[tab.id] = task
+                    cookieWipeHandler.postDelayed(task, 45_000L)
+                }
                 Uri.parse(url).let { uri ->
                     val scheme = uri.scheme?.lowercase()
                     val host = uri.host
@@ -648,6 +1043,7 @@ class MainActivity : AppCompatActivity() {
                 if (tab == currentTab()) urlBar.setText(url)
             }
             progressBar.visibility = View.VISIBLE
+            if (tab == currentTab()) btnRefresh.setImageResource(R.drawable.ic_close_small)
             updatePrivacyBadge(tab)
             if (prefs.getBoolean(KEY_FRESH_IDENTITY, true) &&
                 !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
@@ -656,18 +1052,29 @@ class MainActivity : AppCompatActivity() {
                 // best-effort injection as early in the load as we can get.
                 view.evaluateJavascript(FingerprintRandomizer.script(tab.id), null)
             }
+            if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                view.evaluateJavascript(privacySignalsScript(), null)
+            }
         }
 
         override fun onPageFinished(view: WebView, url: String?) {
             super.onPageFinished(view, url)
+            loadTimeoutTasks.remove(tab.id)?.let(cookieWipeHandler::removeCallbacks)
+            if (prefs.getBoolean(KEY_SCROLL_RESTORE, true) && tab.lastScrollY > 0) view.postDelayed({ view.scrollTo(0, tab.lastScrollY) }, 120)
+            if (prefs.getBoolean(KEY_AUTO_READER, false) && prefs.getBoolean(KEY_READER_MODE, true)) {
+                view.evaluateJavascript("(function(){return !!document.querySelector('article') || ((document.body&&document.body.innerText||'').length>7000)})()") { result ->
+                    if (result == "true") view.postDelayed({ view.evaluateJavascript(ReaderMode.SCRIPT, null) }, 200)
+                }
+            }
             progressBar.visibility = View.GONE
+            btnRefresh.setImageResource(R.drawable.ic_refresh)
             // Phase 2: heuristically auto-dismiss common cookie-consent banners.
-            view.evaluateJavascript(ConsentAutoHandler.SCRIPT, null)
+            if (prefs.getBoolean(KEY_COOKIE_BANNER, true)) view.evaluateJavascript(ConsentAutoHandler.SCRIPT, null)
             if (url != null) {
                 tab.url = url
                 val title = view.title ?: url
                 tab.title = title
-                if (!tab.isIncognito) db.addHistoryEntry(title, url) // Phase 2: incognito never touches history
+                if (!tab.isIncognito && prefs.getBoolean(KEY_SAVE_HISTORY, true)) db.addHistoryEntry(title, url) // Incognito and disabled-history tabs never touch local history
                 val idx = tabs.indexOf(tab)
                 if (idx != -1) tabAdapter.notifyItemChanged(idx)
             }
@@ -677,6 +1084,7 @@ class MainActivity : AppCompatActivity() {
             }
             scheduleCookieWipe(tab)
             updatePrivacyBadge(tab) // Phase 3: finalize once HTTPS/tracker state has settled
+            updateNavState()
         }
     }
 
@@ -686,17 +1094,35 @@ class MainActivity : AppCompatActivity() {
             if (tab == currentTab()) {
                 progressBar.progress = newProgress
                 progressBar.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
+                btnRefresh.setImageResource(if (newProgress in 1..99) R.drawable.ic_close_small else R.drawable.ic_refresh)
+                updateNavState()
             }
         }
 
         override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
-            // Phase 4 safety default: never grant camera/mic to web content.
-            request.deny()
+            if (prefs.getBoolean(KEY_BLOCK_MEDIA_PERMISSIONS, true)) {
+                request.deny()
+                Toast.makeText(this@MainActivity, "Web camera/microphone blocked", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val wantsCamera = request.resources.contains(android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE)
+            val wantsMic = request.resources.contains(android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE)
+            val cameraGranted = !wantsCamera || ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            val micGranted = !wantsMic || ContextCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (cameraGranted && micGranted) {
+                request.grant(request.resources)
+            } else {
+                pendingWebPermissionRequest = request
+                val permissions = buildList {
+                    if (wantsCamera && !cameraGranted) add(android.Manifest.permission.CAMERA)
+                    if (wantsMic && !micGranted) add(android.Manifest.permission.RECORD_AUDIO)
+                }.toTypedArray()
+                if (permissions.isNotEmpty()) ActivityCompat.requestPermissions(this@MainActivity, permissions, REQ_WEB_MEDIA) else request.deny()
+            }
         }
 
         override fun onGeolocationPermissionsShowPrompt(origin: String, callback: android.webkit.GeolocationPermissions.Callback) {
-            // Location is deliberately denied; Android WebView does not provide a reliable per-tab revoke API.
-            callback.invoke(origin, false, false)
+            callback.invoke(origin, !prefs.getBoolean(KEY_BLOCK_GEOLOCATION, true), false)
         }
 
         override fun onReceivedTitle(view: WebView, title: String?) {
@@ -736,11 +1162,17 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "This download is not a directly retrievable video.", Toast.LENGTH_SHORT).show()
             return
         }
-        val id = VideoDownloadsActivity.enqueue(this, url, mimeType)
-        Toast.makeText(this, if (id != null) "Video download queued" else "Download could not be started", Toast.LENGTH_SHORT).show()
+        val enqueue = {
+            val id = VideoDownloadsActivity.enqueue(this, url, mimeType)
+            Toast.makeText(this, if (id != null) "Video download queued" else "Download could not be started", Toast.LENGTH_SHORT).show()
+        }
+        if (prefs.getBoolean(KEY_DOWNLOAD_CONFIRM, true)) {
+            AlertDialog.Builder(this).setTitle("Download media?").setMessage(host.ifBlank { "Direct media" }).setNegativeButton("Cancel", null).setPositiveButton("Download") { _, _ -> enqueue() }.show()
+        } else enqueue()
     }
 
     private fun openDetectedVideoDownloads() {
+        if (!prefs.getBoolean(KEY_VIDEO_DETECTION, true)) { Toast.makeText(this, "Video detection is disabled", Toast.LENGTH_SHORT).show(); return }
         val urls = currentTab()?.detectedVideoUrls.orEmpty().filter { VideoDownloadsActivity.looksLikeVideo(it, null) }
         if (urls.isEmpty()) {
             Toast.makeText(this, "No direct/embedded video URL detected on this page.", Toast.LENGTH_SHORT).show()
@@ -769,18 +1201,265 @@ class MainActivity : AppCompatActivity() {
     private fun triggerPanic() {
         cookieWipeTasks.values.forEach(cookieWipeHandler::removeCallbacks)
         cookieWipeTasks.clear()
+        loadTimeoutTasks.values.forEach(cookieWipeHandler::removeCallbacks)
+        loadTimeoutTasks.clear()
         globalVisitedOrigins.clear()
         PanicManager.wipe(this, tabs, db)
+        prefs.edit().remove(KEY_SESSION_URLS).remove("session_first_url").apply()
+        recentlyClosed.clear()
         tabs.forEach { webViewContainer.removeView(it.webView); it.webView.destroy() }
         tabs.clear()
         currentTabIndex = 0
         tabAdapter.notifyDataSetChanged()
-        openNewTab(HOME_URL)
+        openNewTab(getHomeUrl())
         Toast.makeText(this, "Browsing data cleared", Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
     }
 
+    private fun privacySignalsScript(): String = """
+        (function(){try{
+          Object.defineProperty(navigator,'doNotTrack',{get:function(){return '${if (prefs.getBoolean(KEY_DNT, true)) "1" else "0"}';}, configurable:true});
+          Object.defineProperty(navigator,'globalPrivacyControl',{get:function(){return ${prefs.getBoolean(KEY_GPC, true)};}, configurable:true});
+        }catch(e){}})();
+    """.trimIndent()
+
+    private fun contentGuardScript(): String = """
+        (function(){try{
+          if(${prefs.getBoolean(KEY_BLOCK_WEB_NOTIFICATIONS, true)}){
+            try{Object.defineProperty(window,'Notification',{value:undefined,configurable:true});}catch(e){}
+          }
+          if(${prefs.getBoolean(KEY_BLOCK_SOCIAL, true)}){
+            var hide=function(){try{
+              document.querySelectorAll('iframe[src*="facebook.com"],iframe[src*="instagram.com"],iframe[src*="twitter.com"],iframe[src*="x.com"],iframe[src*="linkedin.com"],iframe[src*="pinterest.com"]').forEach(function(x){x.style.display='none';});
+            }catch(e){}};
+            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',hide); else hide();
+          }
+        }catch(e){}})();
+    """.trimIndent()
+
+    private fun applyGlobalSettingsToOpenTabs() {
+        val dark = prefs.getBoolean(KEY_DARK_MODE, false)
+        tabs.forEach { tab ->
+            tab.webView.settings.javaScriptEnabled = prefs.getBoolean(KEY_JAVASCRIPT, true)
+            tab.webView.settings.loadsImagesAutomatically = prefs.getBoolean(KEY_IMAGES, true)
+            tab.webView.settings.domStorageEnabled = prefs.getBoolean(KEY_DOM_STORAGE, true)
+            tab.webView.settings.mediaPlaybackRequiresUserGesture = prefs.getBoolean(KEY_MEDIA_GESTURE, true)
+            tab.webView.settings.setSupportMultipleWindows(!prefs.getBoolean(KEY_BLOCK_POPUPS, true))
+            tab.webView.settings.javaScriptCanOpenWindowsAutomatically = !prefs.getBoolean(KEY_BLOCK_POPUPS, true)
+            tab.webView.settings.setSupportZoom(prefs.getBoolean(KEY_ENABLE_ZOOM, true))
+            tab.webView.settings.builtInZoomControls = prefs.getBoolean(KEY_ENABLE_ZOOM, true)
+            tab.webView.settings.displayZoomControls = false
+            tab.webView.settings.useWideViewPort = prefs.getBoolean(KEY_WIDE_VIEWPORT, false)
+            tab.webView.settings.loadWithOverviewMode = prefs.getBoolean(KEY_OVERVIEW_MODE, true)
+            tab.webView.isVerticalScrollBarEnabled = prefs.getBoolean(KEY_SHOW_SCROLLBARS, true)
+            tab.webView.isHorizontalScrollBarEnabled = prefs.getBoolean(KEY_SHOW_SCROLLBARS, false)
+            tab.webView.isScrollbarFadingEnabled = true
+            tab.webView.settings.defaultFontSize = prefs.getInt(KEY_DEFAULT_FONT_SIZE, 16).coerceIn(8, 30)
+            tab.webView.settings.minimumFontSize = prefs.getInt(KEY_MIN_FONT_SIZE, 8).coerceIn(1, 24)
+            tab.webView.settings.defaultFixedFontSize = prefs.getInt(KEY_MONO_FONT_SIZE, 13).coerceIn(6, 30)
+            tab.webView.settings.textZoom = prefs.getInt(KEY_TEXT_ZOOM, 100).coerceIn(50, 200)
+            tab.webView.settings.allowFileAccess = !prefs.getBoolean(KEY_BLOCK_FILE_ACCESS, true)
+            tab.webView.settings.allowContentAccess = !prefs.getBoolean(KEY_BLOCK_CONTENT_ACCESS, true)
+            @Suppress("DEPRECATION") tab.webView.settings.saveFormData = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
+            @Suppress("DEPRECATION") tab.webView.settings.savePassword = !prefs.getBoolean(KEY_DISABLE_FORM_HELPERS, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) tab.webView.settings.safeBrowsingEnabled = prefs.getBoolean(KEY_SAFE_BROWSING, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tab.webView.settings.mixedContentMode = if (prefs.getBoolean(KEY_BLOCK_MIXED_CONTENT, true)) android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW else android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            applyWebViewDarkMode(tab.webView, dark)
+            CookiePolicy.configureWebView(tab.webView, prefs.getBoolean(KEY_THIRD_PARTY_COOKIES, true), prefs.getBoolean(KEY_ACCEPT_COOKIES, true))
+            if (prefs.getBoolean(KEY_NO_CACHE, false)) tab.webView.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+            else if (!tab.isIncognito) tab.webView.settings.cacheMode = if (prefs.getBoolean(KEY_FAST_CACHE, true) || prefs.getBoolean(KEY_DATA_SAVER, false)) android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK else android.webkit.WebSettings.LOAD_DEFAULT
+        }
+        updatePrivacyBadge(currentTab() ?: return)
+    }
+
+    private fun handleLongPress(webView: WebView): Boolean {
+        val hit = webView.hitTestResult
+        val target = hit.extra?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+        if (target == null) return false
+        val labels = arrayOf("Open in new tab", "Open in private tab", "Copy link", "Share link")
+        AlertDialog.Builder(this).setItems(labels) { _, which ->
+            when (which) {
+                0 -> openNewTab(target, incognito = if (prefs.getBoolean(KEY_OPEN_LINKS_PRIVATE, false)) true else false)
+                1 -> openNewTab(target, incognito = true)
+                2 -> copyText("Link", target)
+                3 -> shareText("Link", target)
+            }
+        }.setNegativeButton(R.string.close, null).show()
+        return true
+    }
+
+    private fun showPageTools() {
+        val tab = currentTab() ?: return
+        val dialog = BottomSheetDialog(this)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, dp(14))
+            background = GradientDrawable().apply { setColor(ContextCompat.getColor(this@MainActivity, R.color.surface_light)); val r = dp(20).toFloat(); cornerRadii = floatArrayOf(r,r,r,r,0f,0f,0f,0f) }
+        }
+        sheetHeader(content, "Page tools")
+        sheetRow(content, "Find in page") { dialog.dismiss(); showFindInPageDialog() }
+        sheetRow(content, "Copy page URL") { dialog.dismiss(); copyText("Page URL", tab.url) }
+        sheetRow(content, "Copy page title") { dialog.dismiss(); copyText("Page title", tab.title) }
+        if (prefs.getBoolean(KEY_TEXT_EXTRACTION, true)) {
+            sheetRow(content, "Copy readable text") { dialog.dismiss(); copyPageText() }
+            sheetRow(content, "Copy all page links") { dialog.dismiss(); copyAllLinks() }
+            sheetRow(content, "Copy page metadata") { dialog.dismiss(); copyPageMetadata() }
+        }
+        sheetRow(content, "View page source") { dialog.dismiss(); viewPageSource() }
+        sheetRow(content, "Save web archive") { dialog.dismiss(); saveWebArchive() }
+        sheetRow(content, "Capture page screenshot") { dialog.dismiss(); capturePageScreenshot() }
+        if (prefs.getBoolean(KEY_TTS, true)) sheetRow(content, "Listen to page") { dialog.dismiss(); speakPage() }
+        if (prefs.getBoolean(KEY_TRANSLATE, true)) sheetRow(content, "Translate page") { dialog.dismiss(); translatePage() }
+        if (prefs.getBoolean(KEY_READING_LIST, true)) sheetRow(content, "Save to reading list") { dialog.dismiss(); db.addReadingList(tab.title, tab.url); Toast.makeText(this, "Saved to reading list", Toast.LENGTH_SHORT).show() }
+        sheetRow(content, "Print / Save PDF") { dialog.dismiss(); savePageAsPdf() }
+        sheetRow(content, "Zoom") { dialog.dismiss(); showZoomDialog() }
+        sheetRow(content, "Hard reload") { dialog.dismiss(); hardReload() }
+        sheetRow(content, "Open in external browser") { dialog.dismiss(); openExternal() }
+        if (prefs.getBoolean(KEY_READER_MODE, true)) sheetRow(content, "Reader mode") { dialog.dismiss(); tab.webView.evaluateJavascript(ReaderMode.SCRIPT, null) }
+        sheetRow(content, "Site controls") { dialog.dismiss(); showSiteControls() }
+        dialog.setContentView(ScrollView(this).apply { addView(content) })
+        dialog.show()
+    }
+
+    private fun showSiteControls() {
+        val tab = currentTab() ?: return
+        val host = Uri.parse(tab.url).host ?: tab.url
+        val dialog = BottomSheetDialog(this)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(14)); background = GradientDrawable().apply { setColor(ContextCompat.getColor(this@MainActivity, R.color.surface_light)); val r=dp(20).toFloat(); cornerRadii=floatArrayOf(r,r,r,r,0f,0f,0f,0f) } }
+        sheetHeader(content, host)
+        sheetRow(content, "JavaScript", if (tab.webView.settings.javaScriptEnabled) "On" else "Off") {
+            tab.webView.settings.javaScriptEnabled = !tab.webView.settings.javaScriptEnabled; dialog.dismiss(); tab.webView.reload()
+        }
+        sheetRow(content, "Images", if (tab.webView.settings.loadsImagesAutomatically) "On" else "Off") {
+            tab.webView.settings.loadsImagesAutomatically = !tab.webView.settings.loadsImagesAutomatically; dialog.dismiss(); tab.webView.reload()
+        }
+        sheetRow(content, "Desktop site", if (tab.isDesktopMode) "On" else "Off") { dialog.dismiss(); toggleDesktopMode() }
+        sheetRow(content, "Open this domain in private tabs") { dialog.dismiss(); DomainPrivacyStore.addAutoIncognito(this, host); Toast.makeText(this, "Added $host", Toast.LENGTH_SHORT).show() }
+        sheetRow(content, "Clear this site's cookies & storage") { dialog.dismiss(); clearCurrentSiteData() }
+        sheetRow(content, "Clear page history") { dialog.dismiss(); tab.webView.clearHistory(); Toast.makeText(this, "Page history cleared", Toast.LENGTH_SHORT).show() }
+        sheetRow(content, "Privacy score") { dialog.dismiss(); showPrivacyScoreDialog() }
+        sheetRow(content, "View network activity") { dialog.dismiss(); startActivity(Intent(this, TransparencyLogActivity::class.java).putExtra(TransparencyLogActivity.EXTRA_ORIGIN_FILTER, tab.pageOrigin)) }
+        dialog.setContentView(ScrollView(this).apply { addView(content) })
+        dialog.show()
+    }
+
+    private fun clearCurrentSiteData() {
+        val origin = currentTab()?.pageOrigin ?: return
+        CookiePolicy.wipeOrigins(listOf(origin))
+        Toast.makeText(this, "Site cookies and storage cleared", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun hardReload() {
+        currentTab()?.webView?.let { it.clearCache(true); it.reload() }
+    }
+
+    private fun showZoomDialog() {
+        val webView = currentTab()?.webView ?: return
+        val values = intArrayOf(75, 90, 100, 110, 125, 150, 175)
+        val labels = values.map { "$it%" }.toTypedArray()
+        val current = values.indexOf(webView.settings.textZoom).coerceAtLeast(2)
+        AlertDialog.Builder(this).setTitle("Text zoom").setSingleChoiceItems(labels, current) { dialog, which -> webView.settings.textZoom = values[which]; dialog.dismiss() }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun copyAllLinks() {
+        if (!prefs.getBoolean(KEY_TEXT_EXTRACTION, true)) { Toast.makeText(this, "Page extraction is disabled", Toast.LENGTH_SHORT).show(); return }
+        currentTab()?.webView?.evaluateJavascript("Array.from(document.links).map(a=>a.href).filter(Boolean).join('\n')") { raw ->
+            val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('"') }
+            copyText("Page links", text.take(30000))
+        }
+    }
+
+    private fun copyPageMetadata() {
+        currentTab()?.webView?.evaluateJavascript("JSON.stringify({title:document.title,url:location.href,description:(document.querySelector('meta[name=\"description\"]')||{}).content||'',canonical:(document.querySelector('link[rel=\"canonical\"]')||{}).href||'',language:document.documentElement.lang||navigator.language})") { raw ->
+            val text=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{raw.trim('"')}
+            copyText("Page metadata", text)
+        }
+    }
+
+    private fun viewPageSource() {
+        val tab=currentTab() ?: return
+        tab.webView.evaluateJavascript("document.documentElement ? document.documentElement.outerHTML : ''") { raw ->
+            val source=runCatching{org.json.JSONTokener(raw).nextValue().toString()}.getOrElse{raw.trim('"')}
+            openNewTab("data:text/plain;charset=utf-8," + Uri.encode(source.take(120000)))
+        }
+    }
+
+    private fun saveWebArchive() {
+        val tab=currentTab() ?: return
+        val host=Uri.parse(tab.url).host?.replace(Regex("[^A-Za-z0-9.-]"), "_") ?: "page"
+        val dir=java.io.File(filesDir,"archives").apply{mkdirs()}
+        val file=java.io.File(dir,"${System.currentTimeMillis()}-$host.mht")
+        tab.webView.saveWebArchive(file.absolutePath, false, null)
+        Toast.makeText(this,"Archive saved in app storage",Toast.LENGTH_SHORT).show()
+    }
+
+    private fun capturePageScreenshot() {
+        val tab=currentTab() ?: return
+        val webView=tab.webView
+        val bitmap=Bitmap.createBitmap(webView.width.coerceAtLeast(1), webView.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val canvas=android.graphics.Canvas(bitmap)
+        webView.draw(canvas)
+        val file=java.io.File(cacheDir,"page-${System.currentTimeMillis()}.png")
+        file.outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
+        val uri=androidx.core.content.FileProvider.getUriForFile(this,"${BuildConfig.APPLICATION_ID}.files",file)
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply{type="image/png";putExtra(Intent.EXTRA_STREAM,uri);addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)},"Share page screenshot"))
+    }
+
+    private fun translatePage() {
+        val url = currentTab()?.url ?: return
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://translate.google.com/translate?sl=auto&tl=en&u=${Uri.encode(url)}")))
+    }
+
+    private fun speakPage() {
+        val webView = currentTab()?.webView ?: return
+        webView.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
+            val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }.replace("\\n", "\n").take(12000)
+            if (text.isBlank()) { Toast.makeText(this, "No readable text found", Toast.LENGTH_SHORT).show(); return@evaluateJavascript }
+            if (textToSpeech == null) textToSpeech = TextToSpeech(this) { status -> if (status == TextToSpeech.SUCCESS) textToSpeech?.language = Locale.getDefault() }
+            textToSpeech?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "privbrowse-page")
+        }
+    }
+
+    private fun copyPageText() {
+        currentTab()?.webView?.evaluateJavascript("document.body ? document.body.innerText : ''") { raw ->
+            val text = runCatching { org.json.JSONTokener(raw).nextValue().toString() }.getOrElse { raw.trim('\"') }.replace("\\n", "\n").take(20000)
+            copyText("Page text", text)
+        }
+    }
+
+    private fun copyText(label: String, value: String) {
+        val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText(label, value))
+        Toast.makeText(this, "Copied $label", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun shareText(subject: String, value: String) {
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_SUBJECT, subject); putExtra(Intent.EXTRA_TEXT, value) }, subject))
+    }
+
+    private fun openExternal() {
+        val url = currentTab()?.url ?: return
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    private fun savePageAsPdf() {
+        val webView = currentTab()?.webView ?: return
+        val host = Uri.parse(currentTab()?.url ?: "page")?.host ?: "page"
+        val manager = getSystemService(PRINT_SERVICE) as PrintManager
+        manager.print("PrivBrowse-$host", webView.createPrintDocumentAdapter("PrivBrowse-$host"), PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build())
+    }
+
     // ---------- Result callbacks / back press ----------
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQ_WEB_MEDIA) return
+        val request = pendingWebPermissionRequest
+        pendingWebPermissionRequest = null
+        if (request == null) return
+        val allGranted = grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+        if (allGranted) request.grant(request.resources) else request.deny()
+    }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -789,6 +1468,7 @@ class MainActivity : AppCompatActivity() {
         val url = when (requestCode) {
             REQ_BOOKMARKS -> data.getStringExtra(BookmarksActivity.EXTRA_RESULT_URL)
             REQ_HISTORY -> data.getStringExtra(HistoryActivity.EXTRA_RESULT_URL)
+            REQ_READING_LIST -> data.getStringExtra("reading_url")
             else -> null
         }
         if (url != null) currentTab()?.webView?.loadUrl(url)
@@ -805,7 +1485,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::adBlocker.isInitialized) adBlocker.reloadCustomHosts()
+        if (::adBlocker.isInitialized) adBlocker.refreshFromPreferences()
+        applyGlobalSettingsToOpenTabs()
+        if (prefs.getBoolean(KEY_DISABLE_SCREEN_CAPTURE, false)) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         if (prefs.getBoolean("biometric_lock", false) && !biometricPromptShowing) {
             biometricPromptShowing = true
             BiometricLock.authenticate(this, { biometricPromptShowing = false }, {
@@ -816,10 +1498,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level == android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && prefs.getBoolean(KEY_CLEAR_ON_EXIT, false)) {
+            CookiePolicy.wipeOrigins(globalVisitedOrigins)
+            db.clearHistory()
+            globalVisitedOrigins.clear()
+        }
+    }
+
     override fun onDestroy() {
+        saveSessionSnapshot()
+        textToSpeech?.shutdown()
         cookieWipeTasks.values.forEach(cookieWipeHandler::removeCallbacks)
         cookieWipeTasks.clear()
         CookiePolicy.purgeConsentCookies(globalVisitedOrigins)
+        if (prefs.getBoolean(KEY_CLEAR_CACHE_EXIT, false)) tabs.forEach { it.webView.clearCache(true) }
+        if (prefs.getBoolean(KEY_CLEAR_PAGE_HISTORY_EXIT, false)) tabs.forEach { it.webView.clearHistory() }
+        if (prefs.getBoolean(KEY_CLEAR_COOKIES_EXIT, false)) { android.webkit.CookieManager.getInstance().removeAllCookies(null); android.webkit.CookieManager.getInstance().flush() }
+        if (prefs.getBoolean(KEY_CLEAR_STORAGE_EXIT, false)) android.webkit.WebStorage.getInstance().deleteAllData()
+        if (prefs.getBoolean(KEY_CLEAR_NETWORK_LOG_EXIT, false)) db.clearNetworkLog()
+        if (prefs.getBoolean(KEY_PURGE_CONSENT_EXIT, false)) CookiePolicy.purgeConsentCookies(globalVisitedOrigins)
+        if (prefs.getBoolean(KEY_KEEP_SCREEN_ON, false)) window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (prefs.getBoolean(KEY_DISABLE_SCREEN_CAPTURE, false)) window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         tabs.forEach { it.webView.destroy() }
         super.onDestroy()
     }

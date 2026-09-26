@@ -9,6 +9,7 @@
     <item android:id="@+id/menu_phase4" android:title="@string/phase4_menu" />
     <item android:id="@+id/menu_v2ray" android:title="@string/v2ray_menu" />
     <item android:id="@+id/menu_ai_copilot" android:title="@string/ai_copilot_menu" />
+    <item android:id="@+id/menu_feature_center" android:title="Feature Center" />
     <item android:id="@+id/menu_video_downloads" android:title="@string/video_downloads_menu" />
     <item android:id="@+id/menu_reader_mode" android:title="@string/reader_mode_menu" />
     <item android:id="@+id/menu_panic" android:title="@string/panic_menu" />

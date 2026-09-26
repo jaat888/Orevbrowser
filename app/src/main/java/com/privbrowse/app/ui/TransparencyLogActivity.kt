@@ -1,8 +1,6 @@
 package com.privbrowse.app.ui
 
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -37,6 +35,8 @@ class TransparencyLogActivity : AppCompatActivity() {
         setContentView(R.layout.activity_transparency_log)
         title = getString(R.string.network_log)
         db = DbHelper(this)
+        findViewById<android.view.View>(R.id.btnBackPage).setOnClickListener { finish() }
+        findViewById<android.view.View>(R.id.btnClear).setOnClickListener { db.clearNetworkLog(); bindList() }
         originFilter = intent.getStringExtra(EXTRA_ORIGIN_FILTER)
         bindList()
     }
@@ -52,17 +52,4 @@ class TransparencyLogActivity : AppCompatActivity() {
         recyclerView.adapter = NetworkLogAdapter(entries)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 1, 0, R.string.clear_network_log)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == 1) {
-            db.clearNetworkLog()
-            bindList()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
 }

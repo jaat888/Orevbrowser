@@ -4,4 +4,7 @@
     <color name="surface_light">@color/surface_dark</color>
     <color name="text_light">@color/text_dark</color>
     <color name="text_muted_light">@color/text_muted_dark</color>
+    <color name="surface_light_alt">@color/surface_dark_alt</color>
+    <color name="divider">#33FFFFFF</color>
+    <color name="ripple">#2600C2A8</color>
 </resources>

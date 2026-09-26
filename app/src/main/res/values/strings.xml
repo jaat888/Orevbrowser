@@ -1,11 +1,14 @@
 <resources>
     <string name="app_name">PrivBrowse</string>
+    <string name="settings_title">Settings &amp; feature center</string>
     <string name="new_tab">New Tab</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="history">History</string>
     <string name="dark_mode">Dark Mode</string>
     <string name="desktop_mode">Desktop site</string>
     <string name="add_bookmark">Add bookmark</string>
+    <string name="find_in_page">Find in page</string>
+    <string name="share_page">Share page</string>
     <string name="close_tab">Close tab</string>
     <string name="url_hint">Search DuckDuckGo or type a URL</string>
     <string name="clear_history">Clear history</string>
@@ -40,6 +43,27 @@
     <string name="vpn_status_discovering">Discovering VPN Gate servers…</string>
     <string name="vpn_status_discovery_only">Discovery only — no VPN traffic is being routed.</string>
     <string name="vpn_status_connected">Connected via %1$s (%2$s)</string>
+
+    <!-- Unified VPN screen: Quick / Custom -->
+    <string name="vpn_tab_quick">Quick</string>
+    <string name="vpn_tab_custom">Custom</string>
+    <string name="vpn_quick_no_server">No server added yet</string>
+    <string name="vpn_quick_no_server_sub">Add one in the Custom tab, then come back here for one-tap connect.</string>
+    <string name="vpn_quick_add_server">Add a server</string>
+    <string name="vpn_quick_saved_server">Saved server</string>
+    <string name="vpn_manage_servers">Manage / replace server</string>
+    <string name="vpn_public_relay_button">Public relay list (VPN Gate — discovery only)</string>
+    <string name="vpn_custom_hint">Works with vmess://, vless://, trojan:// and ss:// links, or a raw Xray JSON config — paste whatever your provider gave you.</string>
+    <string name="vpn_custom_label_hint">Label (optional, e.g. \"Home server\")</string>
+    <string name="vpn_save_connect">Save &amp; Connect</string>
+    <string name="vpn_save_only">Save</string>
+    <string name="vpn_saved_toast">Saved. Switch to Quick to connect any time.</string>
+
+    <!-- Ad blocker levels, cycled from the menu -->
+    <string name="adblock_menu">Ad blocker</string>
+    <string name="adblock_level_off">Off</string>
+    <string name="adblock_level_normal">Normal</string>
+    <string name="adblock_level_strict">Strict</string>
 
     <!-- Phase 3 -->
     <string name="network_log">Network log</string>

@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -15,7 +17,8 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.PrivBrowse"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".ui.MainActivity"
@@ -51,6 +54,21 @@
             android:label="@string/vpn_menu" />
 
         <activity
+            android:name=".ui.BrowserSettingsActivity"
+            android:exported="false"
+            android:label="Settings &amp; feature center" />
+
+        <activity
+            android:name=".ui.FeatureCenterActivity"
+            android:exported="false"
+            android:label="Feature Center" />
+
+        <activity
+            android:name=".ui.ReadingListActivity"
+            android:exported="false"
+            android:label="Reading list" />
+
+        <activity
             android:name=".ui.Phase4Activity"
             android:exported="false"
             android:label="Advanced privacy" />
@@ -74,6 +92,16 @@
             android:name=".ui.TransparencyLogActivity"
             android:exported="false"
             android:label="@string/network_log" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <receiver
             android:name=".transparency.WeeklyReportReceiver"

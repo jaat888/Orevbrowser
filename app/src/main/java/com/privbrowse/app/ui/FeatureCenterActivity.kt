@@ -1,0 +1,663 @@
+package com.privbrowse.app.ui
+
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.Gravity
+import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.privbrowse.app.R
+import com.privbrowse.app.adblock.AdBlocker
+import com.privbrowse.app.data.DbHelper
+import com.privbrowse.app.privacy.BiometricLock
+import org.json.JSONObject
+
+/**
+ * Large searchable feature catalog. The main browser stays minimal while this
+ * hub exposes power controls and shortcuts in small, scannable cards.
+ */
+class FeatureCenterActivity : AppCompatActivity() {
+    private lateinit var prefs: SharedPreferences
+    private lateinit var rootList: LinearLayout
+    private lateinit var search: EditText
+    private lateinit var countLabel: TextView
+    private val featureViews = mutableListOf<Pair<String, View>>()
+    private val sectionViews = mutableListOf<Pair<TextView, LinearLayout>>()
+    private var totalFeatures = 0
+
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    private fun color(id: Int) = ContextCompat.getColor(this, id)
+    private fun lp() = LinearLayout.LayoutParams(-1, -2)
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        prefs = getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE)
+        build()
+    }
+
+    private fun build() {
+        val outer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(color(R.color.background_light))
+        }
+        outer.addView(toolbar())
+        val scroll = ScrollView(this).apply { isFillViewport = true; clipToPadding = false }
+        rootList = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(4), dp(14), dp(28))
+        }
+        rootList.addView(hero())
+        rootList.addView(searchCard(), lp().apply { topMargin = dp(10) })
+
+        privacySection()
+        engineSection()
+        tabsSection()
+        pageToolsSection()
+        aiSection()
+        downloadsSection()
+        privacyLifecycleSection()
+        advancedSection()
+
+        scroll.addView(rootList)
+        outer.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(outer)
+        updateFilter("")
+    }
+
+    private fun toolbar(): View = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(dp(4), dp(6), dp(4), dp(3))
+        addView(TextView(this@FeatureCenterActivity).apply {
+            text = "‹"
+            textSize = 38f
+            gravity = Gravity.CENTER
+            setTextColor(color(R.color.text_light))
+            setOnClickListener { finish() }
+        }, LinearLayout.LayoutParams(dp(44), dp(50)))
+        addView(LinearLayout(this@FeatureCenterActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(TextView(this@FeatureCenterActivity).apply {
+                text = "Feature Center"
+                textSize = 22f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(color(R.color.text_light))
+            })
+            countLabel = TextView(this@FeatureCenterActivity).apply {
+                textSize = 10.8f
+                setTextColor(color(R.color.text_muted_light))
+            }
+            addView(countLabel)
+        }, LinearLayout.LayoutParams(0, -2, 1f))
+        addView(TextView(this@FeatureCenterActivity).apply {
+            text = "⋮"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            setTextColor(color(R.color.text_light))
+            setOnClickListener { showHubMenu() }
+        }, LinearLayout.LayoutParams(dp(42), dp(48)))
+    }
+
+    private fun hero(): View = MaterialCardView(this).apply {
+        radius = dp(19).toFloat()
+        cardElevation = 0f
+        strokeWidth = dp(1)
+        strokeColor = color(R.color.divider)
+        setCardBackgroundColor(color(R.color.surface_light))
+        val box = LinearLayout(this@FeatureCenterActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(15), dp(14), dp(15), dp(14))
+        }
+        box.addView(TextView(this@FeatureCenterActivity).apply {
+            text = "Powerful browser. Clean home screen."
+            textSize = 17f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(color(R.color.text_light))
+        })
+        box.addView(TextView(this@FeatureCenterActivity).apply {
+            text = "Privacy, tabs, page tools, AI and diagnostics are grouped here so the everyday browser stays uncluttered."
+            textSize = 12f
+            setTextColor(color(R.color.text_muted_light))
+            setPadding(0, dp(4), 0, dp(7))
+        })
+        box.addView(TextView(this@FeatureCenterActivity).apply {
+            text = "100+ controls & shortcuts"
+            textSize = 11f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(color(R.color.accent_dark))
+        })
+        addView(box)
+    }
+
+    private fun searchCard(): View = MaterialCardView(this).apply {
+        radius = dp(16).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
+        val box = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(11), dp(10), dp(11), dp(10)) }
+        search = EditText(this@FeatureCenterActivity).apply {
+            hint = "Search 100+ features"
+            singleLine = true
+            setPadding(dp(12), dp(3), dp(12), dp(3))
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updateFilter(s?.toString().orEmpty()) }
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
+        }
+        box.addView(search, LinearLayout.LayoutParams(-1, dp(52)))
+        addView(box)
+    }
+
+    private fun privacySection() {
+        section("Privacy & tracking") {
+            toggle("Ad & tracker blocker", "Built-in blocking engine with Normal/Strict levels.") { cycleAdBlocker() }
+            togglePref("Block pop-ups", "Stop automatic JavaScript windows.", MainActivity.KEY_BLOCK_POPUPS, true)
+            togglePref("Block social embeds", "Reduce common social iframe/SDK embeds.", MainActivity.KEY_BLOCK_SOCIAL, true)
+            togglePref("Block location prompts", "Deny website geolocation by default.", MainActivity.KEY_BLOCK_GEOLOCATION, true)
+            togglePref("Block camera & microphone", "Require explicit permission before web media access.", MainActivity.KEY_BLOCK_MEDIA_PERMISSIONS, true)
+            togglePref("Block web notifications", "Stop notification prompts from sites.", MainActivity.KEY_BLOCK_WEB_NOTIFICATIONS, true)
+            togglePref("Block mixed content", "Do not load insecure subresources on HTTPS pages.", MainActivity.KEY_BLOCK_MIXED_CONTENT, true)
+            togglePref("Third-party cookies blocked", "Limit cross-site cookie access.", MainActivity.KEY_THIRD_PARTY_COOKIES, true)
+            togglePref("Accept first-party cookies", "Turn the app cookie jar completely on/off.", MainActivity.KEY_ACCEPT_COOKIES, true)
+            togglePref("Cookie-banner helper", "Auto-dismiss common consent banners when detectable.", MainActivity.KEY_COOKIE_BANNER, true)
+            togglePref("Strip tracking parameters", "Remove common click IDs from URLs before loading.", MainActivity.KEY_STRIP_TRACKING, true)
+            togglePref("Do Not Track", "Expose navigator.doNotTrack=1.", MainActivity.KEY_DNT, true)
+            togglePref("Global Privacy Control", "Expose the browser privacy opt-out signal.", MainActivity.KEY_GPC, true)
+            togglePref("Fresh identity per tab", "Rotate browser identity signals for newly created tabs.", MainActivity.KEY_FRESH_IDENTITY, true)
+            togglePref("HTTPS first", "Prefer HTTPS when a plain domain is typed.", MainActivity.KEY_HTTPS_FIRST, true)
+            togglePref("Block file:// access", "Prevent web pages from reading local files through WebView APIs.", MainActivity.KEY_BLOCK_FILE_ACCESS, true)
+            togglePref("Block content:// access", "Prevent web pages from reading content providers.", MainActivity.KEY_BLOCK_CONTENT_ACCESS, true)
+            togglePref("Disable form/password helpers", "Keep legacy form/password persistence disabled.", MainActivity.KEY_DISABLE_FORM_HELPERS, true)
+            togglePref("Privacy badge", "Show the per-page privacy grade beside the address bar.", MainActivity.KEY_SHOW_PRIVACY_BADGE, true)
+            action("Site controls", "Per-site cookies, storage, permissions and network view.") { openMain(MainActivity.ACTION_OPEN_SITE_CONTROLS) }
+            action("Network transparency log", "See allowed and blocked host activity stored locally.") { startActivity(Intent(this, TransparencyLogActivity::class.java)) }
+            action("Privacy score", "Open the current page's A–F privacy details.") { openMain(MainActivity.ACTION_OPEN_SITE_CONTROLS) }
+            action("Advanced privacy controls", "Domain auto-incognito, cookie timer, vault and biometric tools.") { startActivity(Intent(this, Phase4Activity::class.java)) }
+            action("Panic wipe", "Close tabs and clear browsing traces using the app's panic flow.") { openMain(MainActivity.ACTION_PANIC) }
+        }
+    }
+
+    private fun engineSection() {
+        section("Browser engine & performance") {
+            togglePref("JavaScript", "Required for most interactive websites.", MainActivity.KEY_JAVASCRIPT, true)
+            togglePref("Load images", "Disable automatic image loading for lighter browsing.", MainActivity.KEY_IMAGES, true)
+            togglePref("DOM storage", "Allow site localStorage/sessionStorage.", MainActivity.KEY_DOM_STORAGE, true)
+            togglePref("Media requires a tap", "Reduce surprise audio/video autoplay.", MainActivity.KEY_MEDIA_GESTURE, true)
+            togglePref("Safe Browsing", "Use Android WebView's unsafe-site checks when supported.", MainActivity.KEY_SAFE_BROWSING, true)
+            togglePref("Fast cache", "Prefer cached resources for quicker repeat loads.", MainActivity.KEY_FAST_CACHE, true)
+            togglePref("Data-saver cache", "Bias browsing toward cache reuse.", MainActivity.KEY_DATA_SAVER, false)
+            togglePref("No-cache mode", "Force fresh resources for debugging/problem sites.", MainActivity.KEY_NO_CACHE, false)
+            togglePref("Zoom controls", "Enable pinch/text zoom support.", MainActivity.KEY_ENABLE_ZOOM, true)
+            togglePref("Wide viewport", "Use wider layout viewport for responsive pages.", MainActivity.KEY_WIDE_VIEWPORT, false)
+            togglePref("Overview mode", "Fit wide pages when they first load.", MainActivity.KEY_OVERVIEW_MODE, true)
+            togglePref("Auto-stop slow loads", "Stop a page after a 45-second loading timeout.", MainActivity.KEY_AUTO_STOP_LOADING, false)
+            togglePref("Keep screen awake", "Keep the display on while PrivBrowse is open.", MainActivity.KEY_KEEP_SCREEN_ON, false)
+            togglePref("Show page scrollbars", "Show a vertical scrollbar when the page can scroll.", MainActivity.KEY_SHOW_SCROLLBARS, true)
+            togglePref("Desktop by default", "Start newly opened tabs in desktop user-agent mode.", MainActivity.KEY_DESKTOP_DEFAULT, false)
+            action("Text size", "Set the default WebView text zoom.") { editIntPref(MainActivity.KEY_TEXT_ZOOM, "Text zoom", listOf(75, 90, 100, 110, 125, 150, 175, 200)) }
+            action("Default font size", "Set the base WebView font size.") { editIntPref(MainActivity.KEY_DEFAULT_FONT_SIZE, "Default font size", listOf(10, 12, 14, 16, 18, 20, 22)) }
+            action("Minimum font size", "Set the minimum readable font size.") { editIntPref(MainActivity.KEY_MIN_FONT_SIZE, "Minimum font size", listOf(4, 6, 8, 10, 12, 14)) }
+            action("Fixed-width font size", "Set the default fixed/monospace font size.") { editIntPref(MainActivity.KEY_MONO_FONT_SIZE, "Fixed-width font size", listOf(9, 11, 13, 15, 17, 19)) }
+            action("Search engine", prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo") ?: "DuckDuckGo") { chooseSearchEngine() }
+            action("Home page", prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL) ?: MainActivity.HOME_URL) { editHomePage() }
+            action("Theme", if (prefs.getBoolean(MainActivity.KEY_DARK_MODE, false)) "Dark" else "Light") { toggleTheme() }
+        }
+    }
+
+    private fun tabsSection() {
+        section("Tabs, sessions & navigation") {
+            togglePref("Private new tabs", "Make new tabs private by default.", MainActivity.KEY_NEW_TABS_PRIVATE, false)
+            togglePref("Private link opens", "Long-press link actions can open in a private tab.", MainActivity.KEY_OPEN_LINKS_PRIVATE, false)
+            togglePref("Restore last session", "Reopen recent normal tabs after relaunch.", MainActivity.KEY_RESTORE_SESSION, true)
+            togglePref("Recently closed tabs", "Keep a small reopen list for normal tabs.", MainActivity.KEY_RECENT_TABS, true)
+            togglePref("Confirm close all", "Ask before bulk closing tabs.", MainActivity.KEY_CONFIRM_CLOSE_ALL, true)
+            togglePref("Auto reader mode", "Open likely article pages in reader mode.", MainActivity.KEY_AUTO_READER, false)
+            togglePref("Compact tab strip", "Hide the tab strip until more than one tab exists.", MainActivity.KEY_COMPACT_TABS, true)
+            togglePref("Restore scroll position", "Remember scroll position while a tab stays alive.", MainActivity.KEY_SCROLL_RESTORE, true)
+            togglePref("External link handoff", "Let Android handle non-http(s) schemes.", MainActivity.KEY_EXTERNAL_HANDOFF, true)
+            togglePref("Save browsing history", "Store normal-tab visits in the local history database.", MainActivity.KEY_SAVE_HISTORY, true)
+            action("Tab manager", "Search tabs, duplicate, close others and close/restore tabs.") { openMain(MainActivity.ACTION_OPEN_TAB_MANAGER) }
+            action("New private tab", "Open a private tab immediately.") { openMain(MainActivity.ACTION_OPEN_PRIVATE_TAB) }
+            action("Recently closed", "Reopen one of the latest closed normal tabs.") { openMain(MainActivity.ACTION_OPEN_TAB_MANAGER) }
+            action("Bookmarks", "Manage local bookmarks.") { startActivity(Intent(this, BookmarksActivity::class.java)) }
+            action("History", "Search/browse local history.") { startActivity(Intent(this, HistoryActivity::class.java)) }
+            action("Reading list", "Save and reopen pages for later.") { startActivity(Intent(this, ReadingListActivity::class.java)) }
+        }
+    }
+
+    private fun pageToolsSection() {
+        section("Page & accessibility tools") {
+            togglePref("Reader mode", "Keep the Reader Mode page tool available.", MainActivity.KEY_READER_MODE, true)
+            togglePref("Text extraction", "Allow readable-text, links and metadata extraction.", MainActivity.KEY_TEXT_EXTRACTION, true)
+            togglePref("Text to speech", "Keep Listen to page available.", MainActivity.KEY_TTS, true)
+            togglePref("Translation shortcut", "Keep the page translation action available.", MainActivity.KEY_TRANSLATE, true)
+            togglePref("Reading list", "Keep Save to reading list available from Page tools.", MainActivity.KEY_READING_LIST, true)
+            togglePref("Video detection", "Detect direct/embedded media candidates for the download manager.", MainActivity.KEY_VIDEO_DETECTION, true)
+            togglePref("Hide screenshot capture", "Enable Android FLAG_SECURE while this option is on.", MainActivity.KEY_DISABLE_SCREEN_CAPTURE, false)
+            action("Page tools hub", "Find, copy, reader, translate, listen, PDF, archive and site controls.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Find in page", "Search text inside the current page.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Reader mode", "Open the readable-content transformation.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Translate page", "Open the translation shortcut.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Listen to page", "Read page text with Android TTS.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Copy readable text", "Extract visible text from the current page.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Copy all links", "Extract all page links to the clipboard.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Copy metadata", "Copy title, URL, description, canonical URL and language.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Page source", "Open a text tab containing current document source.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Web archive", "Save the current page as an MHT archive in app storage.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Capture screenshot", "Capture the visible WebView and share it.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Print / save PDF", "Use Android print/PDF for the current page.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Hard reload", "Clear the tab cache and reload.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Open external browser", "Hand the current URL to another installed browser.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Desktop site", "Toggle the current tab's desktop user agent.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+            action("Share page", "Share the current page URL/title.") { openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS) }
+        }
+    }
+
+    private fun aiSection() {
+        section("AI assistant") {
+            togglePref("AI page context", "Allow the current page's readable text to be attached to prompts.", MainActivity.KEY_AI_CONTEXT, true)
+            togglePref("AI chat history", "Keep recent local AI chat on this device.", MainActivity.KEY_AI_HISTORY, true)
+            togglePref("AI concise mode", "Use a shorter default assistant style.", MainActivity.KEY_AI_COMPACT, true)
+            togglePref("Show provider/model", "Show active provider and model in the AI header.", MainActivity.KEY_AI_SHOW_MODEL, true)
+            action("AI Copilot", "Dedicated clean chat workspace with page context and provider setup.") { startActivity(Intent(this, AiCopilotActivity::class.java)) }
+            action("AI summarize", "Summarize the current page.") { openAi("Summarize the current page in concise bullets.") }
+            action("AI key points", "Extract important points.") { openAi("Extract the most important points from the current page.") }
+            action("AI explain simply", "Explain difficult page text for a beginner.") { openAi("Explain the current page simply and define difficult terms.") }
+            action("AI facts", "Extract concrete facts, dates and names.") { openAi("Extract concrete names, dates, numbers and verifiable facts from the current page.") }
+            action("AI Hindi", "Explain the page in clear Hindi.") { openAi("Explain the useful content of the current page in clear Hindi.") }
+            action("AI notes", "Turn a page into organized notes.") { openAi("Turn the current page into clean structured notes.") }
+            action("AI study guide", "Build study material from a page.") { openAi("Create a short study guide from the current page.") }
+            action("AI comparison", "Compare options or viewpoints without ranking.") { openAi("Compare the main options or viewpoints on the current page neutrally.") }
+            action("AI checklist", "Convert useful instructions into a checklist.") { openAi("Turn the useful instructions from the current page into a checklist.") }
+            action("AI questions", "Generate Q&A from page content.") { openAi("Create 10 questions and answers from the current page.") }
+            action("AI glossary", "Define important terms.") { openAi("Create a glossary of important terms from the current page.") }
+            action("AI timeline", "Extract dated events chronologically.") { openAi("Extract dated events from the current page and arrange them chronologically.") }
+            action("AI action items", "Extract concrete next steps.") { openAi("Extract action items or next steps from the current page.") }
+            action("AI FAQ", "Create a compact page-based FAQ.") { openAi("Create a concise FAQ based only on the current page.") }
+            action("AI entities", "Extract people, organizations, places and products.") { openAi("Extract important named entities from the current page.") }
+            action("AI JSON", "Extract structured page data into JSON.") { openAi("Return compact JSON containing title, topic, key points, dates and entities from the current page.") }
+            action("AI code explain", "Explain code shown on the current page.") { openAi("Explain any code on the current page in simple terms and call out important behavior.") }
+            action("AI prompt profiles", "Choose browser, research, study, writing or developer styles.") { startActivity(Intent(this, AiCopilotActivity::class.java).putExtra(AiCopilotActivity.EXTRA_PROMPT, "Use my current AI profile to help me with this page.")) }
+        }
+    }
+
+    private fun downloadsSection() {
+        section("Downloads, media & connectivity") {
+            togglePref("Download confirmations", "Ask before direct media downloads start.", MainActivity.KEY_DOWNLOAD_CONFIRM, true)
+            togglePref("Video detection", "Detect direct media candidates in the current page.", MainActivity.KEY_VIDEO_DETECTION, true)
+            action("Downloads", "Open the app's direct media/download queue.") { startActivity(Intent(this, VideoDownloadsActivity::class.java)) }
+            action("VPN discovery", "Inspect the app's VPN Gate discovery flow.") { startActivity(Intent(this, VpnActivity::class.java)) }
+            action("V2Ray / Xray", "Configure/import supported tunnel profiles.") { startActivity(Intent(this, V2RayActivity::class.java)) }
+            action("Connection diagnostics", "Copy browser settings that help troubleshoot a page.") { copyDiagnostics() }
+            action("Network log", "Inspect contacted hosts and blocked categories.") { startActivity(Intent(this, TransparencyLogActivity::class.java)) }
+            action("Privacy report", "Open the local transparency log / weekly report tools.") { startActivity(Intent(this, TransparencyLogActivity::class.java)) }
+        }
+    }
+
+    private fun privacyLifecycleSection() {
+        section("Cleanup, lifecycle & data") {
+            togglePref("Clear cache on exit", "Delete WebView cache when the activity is destroyed.", MainActivity.KEY_CLEAR_CACHE_EXIT, false)
+            togglePref("Clear cookies on exit", "Delete the WebView cookie jar when the activity is destroyed.", MainActivity.KEY_CLEAR_COOKIES_EXIT, false)
+            togglePref("Clear storage on exit", "Delete WebView origin storage on exit.", MainActivity.KEY_CLEAR_STORAGE_EXIT, false)
+            togglePref("Clear page history on exit", "Remove WebView navigation history on exit.", MainActivity.KEY_CLEAR_PAGE_HISTORY_EXIT, false)
+            togglePref("Clear network log on exit", "Erase the local transparency log during teardown.", MainActivity.KEY_CLEAR_NETWORK_LOG_EXIT, false)
+            togglePref("Purge consent cookies on exit", "Remove common consent-cookie names for visited origins.", MainActivity.KEY_PURGE_CONSENT_EXIT, false)
+            togglePref("Clear when backgrounded", "Use the app's clear-on-exit/background lifecycle path.", MainActivity.KEY_CLEAR_ON_EXIT, false)
+            togglePref("Private tabs no-cache", "Keep private tabs out of the normal HTTP cache.", MainActivity.KEY_INCOGNITO_NO_CACHE, true)
+            togglePref("Prune transparency logs", "Remove old network-log entries after 30 days.", MainActivity.KEY_PRUNE_LOGS, true)
+            action("Clear cookies", "Clear all WebView cookies now.") { clearCookies() }
+            action("Clear web storage", "Delete all WebView origin storage now.") { clearStorage() }
+            action("Clear network log", "Delete all locally stored network transparency events.") { clearNetworkLog() }
+            action("Reset browser preferences", "Restore major browser settings to the safe defaults used by this build.") { confirmReset() }
+            action("Export settings", "Copy a JSON settings snapshot to the clipboard.") { exportSettings() }
+            action("Import settings", "Import a JSON settings snapshot.") { importSettings() }
+        }
+    }
+
+    private fun advancedSection() {
+        section("Security, diagnostics & utilities") {
+            action("Biometric app lock", "Enable/disable the app lock when supported by the device.") { openSecurity() }
+            action("Secure API-key vault", "AI keys are stored through Android Keystore-backed SecureStore.") { startActivity(Intent(this, AiCopilotActivity::class.java)) }
+            action("Reader mode notes", "Review the built-in reader-mode behavior.") { startActivity(Intent(this, Phase4Activity::class.java)) }
+            action("Breach checker", "Open the optional account-breach check tool.") { startActivity(Intent(this, Phase4Activity::class.java)) }
+            action("Bookmarks", "Open local bookmark management.") { startActivity(Intent(this, BookmarksActivity::class.java)) }
+            action("History", "Open local browsing history management.") { startActivity(Intent(this, HistoryActivity::class.java)) }
+            action("Settings", "Return to the compact settings screen.") { startActivity(Intent(this, BrowserSettingsActivity::class.java)) }
+            action("Copy settings summary", "Copy a concise current-configuration summary.") { copySettingsSummary() }
+            action("Share diagnostics", "Share a text diagnostic snapshot.") { shareDiagnostics() }
+            action("Panic flow", "Open the emergency clear/close action.") { openMain(MainActivity.ACTION_PANIC) }
+            action("Private tab", "Open a private tab without navigating through menus.") { openMain(MainActivity.ACTION_OPEN_PRIVATE_TAB) }
+            action("About feature coverage", "Show what is native, what uses Android WebView, and what is optional network functionality.") { showCoverage() }
+        }
+    }
+
+    private fun section(title: String, body: FeatureCenterActivity.() -> Unit) {
+        val header = TextView(this).apply {
+            text = title.uppercase()
+            textSize = 11.5f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(color(R.color.accent_dark))
+            setPadding(dp(2), dp(18), 0, dp(6))
+        }
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        sectionViews += header to box
+        rootList.addView(header)
+        rootList.addView(box)
+        body()
+    }
+
+    private fun togglePref(title: String, subtitle: String, key: String, default: Boolean) {
+        totalFeatures++
+        val card = MaterialCardView(this).apply {
+            radius = dp(14).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light))
+            layoutParams = lp().apply { bottomMargin = dp(6) }
+        }
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(13), dp(10), dp(9), dp(10)) }
+        val copy = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        copy.addView(TextView(this).apply {
+            text = title; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light))
+        })
+        copy.addView(TextView(this).apply {
+            text = subtitle; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); setPadding(0, dp(2), 0, 0); maxLines = 2
+        })
+        val sw = MaterialSwitch(this).apply {
+            isChecked = prefs.getBoolean(key, default)
+            setOnCheckedChangeListener { _, value ->
+                prefs.edit().putBoolean(key, value).apply()
+                if (key == MainActivity.KEY_DARK_MODE) recreate()
+                if (key == MainActivity.KEY_DISABLE_SCREEN_CAPTURE) {
+                    if (value) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
+        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(sw)
+        card.addView(row)
+        addFeature(title, card)
+    }
+
+    private fun toggle(title: String, subtitle: String, action: () -> Unit) {
+        totalFeatures++
+        val card = featureCard(title, subtitle, action, switch = true)
+        addFeature(title, card)
+    }
+
+    private fun action(title: String, subtitle: String, action: () -> Unit) {
+        totalFeatures++
+        addFeature(title, featureCard(title, subtitle, action, switch = false))
+    }
+
+    private fun featureCard(title: String, subtitle: String, action: () -> Unit, switch: Boolean): View = MaterialCardView(this).apply {
+        radius = dp(14).toFloat(); cardElevation = 0f; strokeWidth = dp(1); strokeColor = color(R.color.divider); setCardBackgroundColor(color(R.color.surface_light)); isClickable = true
+        layoutParams = lp().apply { bottomMargin = dp(6) }
+        setOnClickListener { action() }
+        val row = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(13), dp(11), dp(12), dp(11)) }
+        val copy = LinearLayout(this@FeatureCenterActivity).apply { orientation = LinearLayout.VERTICAL }
+        copy.addView(TextView(this@FeatureCenterActivity).apply { text = title; textSize = 14.2f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.text_light)) })
+        copy.addView(TextView(this@FeatureCenterActivity).apply { text = subtitle; textSize = 11.3f; setTextColor(color(R.color.text_muted_light)); maxLines = 2; setPadding(0, dp(2), 0, 0) })
+        row.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(TextView(this@FeatureCenterActivity).apply { text = if (switch) "ON" else "›"; textSize = if (switch) 10f else 24f; setTypeface(typeface, android.graphics.Typeface.BOLD); setTextColor(color(R.color.accent_dark)) })
+        addView(row)
+    }
+
+    private fun addFeature(title: String, view: View) {
+        featureViews += title.lowercase() to view
+        sectionViews.lastOrNull()?.second?.addView(view)
+    }
+
+    private fun updateFilter(query: String) {
+        val q = query.trim().lowercase()
+        var visible = 0
+        featureViews.forEach { (title, view) ->
+            val show = q.isBlank() || title.contains(q)
+            view.visibility = if (show) View.VISIBLE else View.GONE
+            if (show) visible++
+        }
+        sectionViews.forEach { (_, box) ->
+            val any = (0 until box.childCount).any { box.getChildAt(it).visibility == View.VISIBLE }
+            // Header visibility is derived from the matching feature cards.
+            sectionViews.firstOrNull { it.second === box }?.first?.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
+            box.visibility = if (q.isBlank() || any) View.VISIBLE else View.GONE
+        }
+        countLabel.text = if (q.isBlank()) "$totalFeatures features" else "$visible features shown"
+    }
+
+    private fun showHubMenu() {
+        AlertDialog.Builder(this).setTitle("Feature Center")
+            .setItems(arrayOf("Export settings", "Copy diagnostics", "Reset preferences", "Coverage notes")) { _, which ->
+                when (which) { 0 -> exportSettings(); 1 -> copyDiagnostics(); 2 -> confirmReset(); 3 -> showCoverage() }
+            }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun openMain(action: String) {
+        startActivity(Intent(this, MainActivity::class.java).apply {
+            this.action = action
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        })
+    }
+
+    private fun openAi(text: String) {
+        startActivity(Intent(this, AiCopilotActivity::class.java).putExtra(AiCopilotActivity.EXTRA_PROMPT, text))
+    }
+
+    private fun cycleAdBlocker() {
+        AdBlocker(this).cycleLevel()
+        Toast.makeText(this, "Ad blocker level changed", Toast.LENGTH_SHORT).show()
+        recreate()
+    }
+
+    private fun chooseSearchEngine() {
+        val engines = arrayOf("DuckDuckGo", "Brave Search", "Bing", "Google", "Startpage", "Ecosia")
+        val current = engines.indexOf(prefs.getString(MainActivity.KEY_SEARCH_ENGINE, engines[0])).coerceAtLeast(0)
+        AlertDialog.Builder(this).setTitle("Search engine").setSingleChoiceItems(engines, current) { dialog, which ->
+            prefs.edit().putString(MainActivity.KEY_SEARCH_ENGINE, engines[which]).apply(); dialog.dismiss(); recreate()
+        }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun editHomePage() {
+        val input = EditText(this).apply { singleLine = true; setText(prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL)); selectAll() }
+        AlertDialog.Builder(this).setTitle("Home page").setView(input).setPositiveButton("Save") { _, _ ->
+            val value = input.text.toString().trim()
+            if (value.startsWith("http://") || value.startsWith("https://")) prefs.edit().putString(MainActivity.KEY_HOME_URL, value).apply() else Toast.makeText(this, "Use an http/https URL", Toast.LENGTH_SHORT).show()
+            recreate()
+        }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun editIntPref(key: String, title: String, values: List<Int>) {
+        val labels = values.map { "$it" }.toTypedArray()
+        val current = values.indexOf(prefs.getInt(key, values.first())).coerceAtLeast(0)
+        AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels, current) { dialog, which ->
+            prefs.edit().putInt(key, values[which]).apply(); dialog.dismiss()
+            openMain(MainActivity.ACTION_OPEN_PAGE_TOOLS)
+        }.setNegativeButton(R.string.close, null).show()
+    }
+
+    private fun toggleTheme() {
+        val dark = !prefs.getBoolean(MainActivity.KEY_DARK_MODE, false)
+        prefs.edit().putBoolean(MainActivity.KEY_DARK_MODE, dark).apply()
+        AppCompatDelegate.setDefaultNightMode(if (dark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
+        recreate()
+    }
+
+    private fun clearCookies() {
+        android.webkit.CookieManager.getInstance().removeAllCookies { Toast.makeText(this, "Cookies cleared", Toast.LENGTH_SHORT).show() }
+        android.webkit.CookieManager.getInstance().flush()
+    }
+
+    private fun clearStorage() {
+        android.webkit.WebStorage.getInstance().deleteAllData()
+        Toast.makeText(this, "Web storage cleared", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun clearNetworkLog() {
+        DbHelper(this).clearNetworkLog()
+        Toast.makeText(this, "Network log cleared", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun confirmReset() {
+        AlertDialog.Builder(this).setTitle("Reset browser preferences?")
+            .setMessage("Restore browser/privacy preferences. Bookmarks and history remain untouched.")
+            .setNegativeButton(R.string.close, null)
+            .setPositiveButton("Reset") { _, _ ->
+                prefs.edit().clear()
+                    .putBoolean(MainActivity.KEY_FRESH_IDENTITY, true)
+                    .putBoolean(MainActivity.KEY_DNT, true)
+                    .putBoolean(MainActivity.KEY_GPC, true)
+                    .putBoolean(MainActivity.KEY_COOKIE_BANNER, true)
+                    .putBoolean(MainActivity.KEY_SHOW_PRIVACY_BADGE, true)
+                    .putBoolean(MainActivity.KEY_JAVASCRIPT, true)
+                    .putBoolean(MainActivity.KEY_IMAGES, true)
+                    .putBoolean(MainActivity.KEY_SAFE_BROWSING, true)
+                    .putBoolean(MainActivity.KEY_MEDIA_GESTURE, true)
+                    .putBoolean(MainActivity.KEY_RESTORE_SESSION, true)
+                    .putBoolean(MainActivity.KEY_HTTPS_FIRST, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_POPUPS, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_SOCIAL, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_GEOLOCATION, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_MEDIA_PERMISSIONS, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_WEB_NOTIFICATIONS, true)
+                    .putBoolean(MainActivity.KEY_THIRD_PARTY_COOKIES, true)
+                    .putBoolean(MainActivity.KEY_ACCEPT_COOKIES, true)
+                    .putBoolean(MainActivity.KEY_STRIP_TRACKING, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_MIXED_CONTENT, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_FILE_ACCESS, true)
+                    .putBoolean(MainActivity.KEY_BLOCK_CONTENT_ACCESS, true)
+                    .putBoolean(MainActivity.KEY_DISABLE_FORM_HELPERS, true)
+                    .putBoolean(MainActivity.KEY_FAST_CACHE, true)
+                    .putBoolean(MainActivity.KEY_INCOGNITO_NO_CACHE, true)
+                    .putBoolean(MainActivity.KEY_PRUNE_LOGS, true)
+                    .putBoolean(MainActivity.KEY_SAVE_HISTORY, true)
+                    .putBoolean(MainActivity.KEY_SHOW_SCROLLBARS, true)
+                    .putBoolean(MainActivity.KEY_AUTO_FOCUS_ADDRESS, false)
+                    .putInt(MainActivity.KEY_TEXT_ZOOM, 100)
+                    .putInt(MainActivity.KEY_DEFAULT_FONT_SIZE, 16)
+                    .putInt(MainActivity.KEY_MIN_FONT_SIZE, 8)
+                    .putInt(MainActivity.KEY_MONO_FONT_SIZE, 13)
+                    .putString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL)
+                    .putString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo")
+                    .apply()
+                Toast.makeText(this, "Preferences reset", Toast.LENGTH_SHORT).show()
+                recreate()
+            }.show()
+    }
+
+    private fun exportSettings() {
+        val keys = listOf(
+            MainActivity.KEY_DARK_MODE, MainActivity.KEY_FRESH_IDENTITY, MainActivity.KEY_DNT, MainActivity.KEY_GPC,
+            MainActivity.KEY_COOKIE_BANNER, MainActivity.KEY_SHOW_PRIVACY_BADGE, MainActivity.KEY_JAVASCRIPT, MainActivity.KEY_IMAGES,
+            MainActivity.KEY_SAFE_BROWSING, MainActivity.KEY_MEDIA_GESTURE, MainActivity.KEY_RESTORE_SESSION, MainActivity.KEY_HTTPS_FIRST,
+            MainActivity.KEY_BLOCK_POPUPS, MainActivity.KEY_BLOCK_SOCIAL, MainActivity.KEY_BLOCK_GEOLOCATION, MainActivity.KEY_BLOCK_MEDIA_PERMISSIONS,
+            MainActivity.KEY_BLOCK_WEB_NOTIFICATIONS, MainActivity.KEY_THIRD_PARTY_COOKIES, MainActivity.KEY_ACCEPT_COOKIES, MainActivity.KEY_STRIP_TRACKING,
+            MainActivity.KEY_DATA_SAVER, MainActivity.KEY_FAST_CACHE, MainActivity.KEY_NO_CACHE, MainActivity.KEY_DOM_STORAGE, MainActivity.KEY_ENABLE_ZOOM,
+            MainActivity.KEY_WIDE_VIEWPORT, MainActivity.KEY_OVERVIEW_MODE, MainActivity.KEY_DARKEN_PAGES, MainActivity.KEY_NEW_TABS_PRIVATE,
+            MainActivity.KEY_OPEN_LINKS_PRIVATE, MainActivity.KEY_RECENT_TABS, MainActivity.KEY_CONFIRM_CLOSE_ALL, MainActivity.KEY_AUTO_READER,
+            MainActivity.KEY_COMPACT_TABS, MainActivity.KEY_SCROLL_RESTORE, MainActivity.KEY_EXTERNAL_HANDOFF, MainActivity.KEY_DOWNLOAD_CONFIRM,
+            MainActivity.KEY_BLOCK_MIXED_CONTENT, MainActivity.KEY_BLOCK_FILE_ACCESS, MainActivity.KEY_BLOCK_CONTENT_ACCESS, MainActivity.KEY_DISABLE_FORM_HELPERS,
+            MainActivity.KEY_AUTO_STOP_LOADING, MainActivity.KEY_CLEAR_CACHE_EXIT, MainActivity.KEY_CLEAR_COOKIES_EXIT, MainActivity.KEY_CLEAR_STORAGE_EXIT,
+            MainActivity.KEY_CLEAR_PAGE_HISTORY_EXIT, MainActivity.KEY_INCOGNITO_NO_CACHE, MainActivity.KEY_PRUNE_LOGS, MainActivity.KEY_AI_CONTEXT,
+            MainActivity.KEY_AI_HISTORY, MainActivity.KEY_AI_COMPACT, MainActivity.KEY_AI_SHOW_MODEL, MainActivity.KEY_READER_MODE, MainActivity.KEY_TTS,
+            MainActivity.KEY_TRANSLATE, MainActivity.KEY_READING_LIST, MainActivity.KEY_TEXT_EXTRACTION, MainActivity.KEY_VIDEO_DETECTION,
+            MainActivity.KEY_DISABLE_SCREEN_CAPTURE, MainActivity.KEY_SAVE_HISTORY, MainActivity.KEY_DESKTOP_DEFAULT, MainActivity.KEY_KEEP_SCREEN_ON,
+            MainActivity.KEY_SHOW_SCROLLBARS, MainActivity.KEY_CLEAR_NETWORK_LOG_EXIT, MainActivity.KEY_PURGE_CONSENT_EXIT, MainActivity.KEY_AUTO_FOCUS_ADDRESS
+        )
+        val json = JSONObject()
+        keys.forEach { json.put(it, prefs.getBoolean(it, false)) }
+        json.put(MainActivity.KEY_HOME_URL, prefs.getString(MainActivity.KEY_HOME_URL, MainActivity.HOME_URL))
+        json.put(MainActivity.KEY_SEARCH_ENGINE, prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo"))
+        json.put(MainActivity.KEY_TEXT_ZOOM, prefs.getInt(MainActivity.KEY_TEXT_ZOOM, 100))
+        json.put(MainActivity.KEY_DEFAULT_FONT_SIZE, prefs.getInt(MainActivity.KEY_DEFAULT_FONT_SIZE, 16))
+        json.put(MainActivity.KEY_MIN_FONT_SIZE, prefs.getInt(MainActivity.KEY_MIN_FONT_SIZE, 8))
+        json.put(MainActivity.KEY_MONO_FONT_SIZE, prefs.getInt(MainActivity.KEY_MONO_FONT_SIZE, 13))
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("PrivBrowse settings", json.toString(2)))
+        Toast.makeText(this, "Settings JSON copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun importSettings() {
+        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply { type = "application/json"; addCategory(Intent.CATEGORY_OPENABLE) }, 420)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 420 || resultCode != Activity.RESULT_OK || data?.data == null) return
+        runCatching {
+            val raw = contentResolver.openInputStream(data.data!!)?.bufferedReader()?.use { it.readText() } ?: error("Empty file")
+            val json = JSONObject(raw)
+            val editor = prefs.edit()
+            json.keys().forEach { key ->
+                when (val value = json.get(key)) {
+                    is Boolean -> editor.putBoolean(key, value)
+                    is String -> editor.putString(key, value)
+                    is Int -> editor.putInt(key, value)
+                    is Long -> editor.putLong(key, value)
+                    is Double -> editor.putFloat(key, value.toFloat())
+                }
+            }
+            editor.apply(); Toast.makeText(this, "Settings imported", Toast.LENGTH_SHORT).show(); recreate()
+        }.onFailure { Toast.makeText(this, "Import failed: ${it.message}", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun openSecurity() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+            Toast.makeText(this, "Biometric lock needs Android 9+", Toast.LENGTH_SHORT).show(); return
+        }
+        BiometricLock.authenticate(this, {
+            getSharedPreferences(MainActivity.PREFS, MODE_PRIVATE).edit().putBoolean("biometric_lock", true).apply()
+            Toast.makeText(this, "Biometric app lock enabled", Toast.LENGTH_SHORT).show()
+        }, {
+            Toast.makeText(this, "Biometric setup cancelled", Toast.LENGTH_SHORT).show()
+        })
+    }
+
+    private fun copyDiagnostics() {
+        val text = "PrivBrowse diagnostics\n" +
+            "JS=${prefs.getBoolean(MainActivity.KEY_JAVASCRIPT, true)}\n" +
+            "Images=${prefs.getBoolean(MainActivity.KEY_IMAGES, true)}\n" +
+            "SafeBrowsing=${prefs.getBoolean(MainActivity.KEY_SAFE_BROWSING, true)}\n" +
+            "3P cookies blocked=${prefs.getBoolean(MainActivity.KEY_THIRD_PARTY_COOKIES, true)}\n" +
+            "Tracking strip=${prefs.getBoolean(MainActivity.KEY_STRIP_TRACKING, true)}\n" +
+            "AI context=${prefs.getBoolean(MainActivity.KEY_AI_CONTEXT, true)}"
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("PrivBrowse diagnostics", text))
+        Toast.makeText(this, "Diagnostics copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun copySettingsSummary() {
+        val text = "PrivBrowse • ${prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo")} • " +
+            "privacy popups=${prefs.getBoolean(MainActivity.KEY_BLOCK_POPUPS, true)}, " +
+            "3P-cookies=${prefs.getBoolean(MainActivity.KEY_THIRD_PARTY_COOKIES, true)}, " +
+            "GPC=${prefs.getBoolean(MainActivity.KEY_GPC, true)}, " +
+            "JS=${prefs.getBoolean(MainActivity.KEY_JAVASCRIPT, true)}, " +
+            "AI=${prefs.getBoolean(MainActivity.KEY_AI_CONTEXT, true)}"
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("PrivBrowse summary", text))
+        Toast.makeText(this, "Summary copied", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun shareDiagnostics() {
+        val text = "PrivBrowse diagnostics\n" +
+            "Search=${prefs.getString(MainActivity.KEY_SEARCH_ENGINE, "DuckDuckGo")}\n" +
+            "Safe Browsing=${prefs.getBoolean(MainActivity.KEY_SAFE_BROWSING, true)}\n" +
+            "Tracking protection=${prefs.getBoolean(MainActivity.KEY_STRIP_TRACKING, true)}"
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "Share diagnostics"))
+    }
+
+    private fun showCoverage() {
+        AlertDialog.Builder(this)
+            .setTitle("PrivBrowse capability map")
+            .setMessage("Native Android/WebView: tabs, history, bookmarks, reader mode, TTS, PDF/print, downloads, WebView privacy settings, biometric lock and local logs.\n\nOptional network features: AI providers, translation pages and VPN/tunnel modules only run when you use them.\n\nSome desktop-browser features such as arbitrary Chrome extensions cannot be added to Android WebView directly without replacing the browser engine.")
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+}

@@ -3,8 +3,6 @@ package com.privbrowse.app.ui
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +24,8 @@ class HistoryActivity : AppCompatActivity() {
         setContentView(R.layout.activity_history)
         title = getString(R.string.history)
         db = DbHelper(this)
+        findViewById<android.view.View>(R.id.btnBackPage).setOnClickListener { finish() }
+        findViewById<android.view.View>(R.id.btnClear).setOnClickListener { db.clearHistory(); bindList() }
         bindList()
     }
 
@@ -45,17 +45,4 @@ class HistoryActivity : AppCompatActivity() {
         })
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(0, 1, 0, R.string.clear_history)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == 1) {
-            db.clearHistory()
-            bindList()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
 }

@@ -1,0 +1,29 @@
+# PrivBrowse STRICT-mode extra block list.
+# Only applied when the ad-blocker level is set to Strict. On top of the
+# normal tracker + fingerprint lists, this blocks social widgets, share
+# buttons and video-ad networks — more aggressive, occasionally breaks an
+# embedded widget (e.g. a "Tweet this" button won't render).
+platform.twitter.com
+connect.facebook.net
+staticxx.facebook.com
+apis.google.com
+addthis.com
+sharethis.com
+disqus.com
+imasdk.googleapis.com
+pubads.g.doubleclick.net
+securepubads.g.doubleclick.net
+ads.pubmatic.com
+pixel.mathtag.com
+tags.bluekai.com
+demdex.net
+adform.net
+adtech.de
+serving-sys.com
+casalemedia.com
+openx.net
+smartadserver.com
+media.net
+yieldmo.com
+sonobi.com
+gumgum.com

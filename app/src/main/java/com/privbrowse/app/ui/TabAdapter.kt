@@ -32,7 +32,7 @@ class TabAdapter(
 
     override fun onBindViewHolder(holder: TabViewHolder, position: Int) {
         val tab = tabs[position]
-        holder.title.text = if (tab.isIncognito) "\uD83D\uDD76 ${tab.title}" else tab.title
+        holder.title.text = if (tab.isIncognito) "Private · ${tab.title}" else tab.title
         holder.itemView.isSelected = position == selectedPosition
         holder.itemView.setOnClickListener { onTabSelected(holder.bindingAdapterPosition) }
         holder.close.setOnClickListener { onTabClosed(holder.bindingAdapterPosition) }

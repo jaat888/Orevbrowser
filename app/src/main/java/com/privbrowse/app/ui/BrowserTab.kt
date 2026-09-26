@@ -10,6 +10,7 @@ class BrowserTab(val id: Long, val webView: WebView) {
     var url: String = "https://duckduckgo.com"
     var isDesktopMode: Boolean = false
     var isIncognito: Boolean = false
+    var lastScrollY: Int = 0
     val visitedOrigins: MutableSet<String> = mutableSetOf()
 
     var pageOrigin: String = ""

@@ -17,10 +17,10 @@ object CookiePolicy {
         "cookie_consent_level", "cookie_consent_user_accepted"
     )
 
-    fun configureWebView(webView: WebView) {
+    fun configureWebView(webView: WebView, blockThirdPartyCookies: Boolean = true, acceptCookies: Boolean = true) {
         val cookieManager = CookieManager.getInstance()
-        cookieManager.setAcceptCookie(true)
-        cookieManager.setAcceptThirdPartyCookies(webView, false)
+        cookieManager.setAcceptCookie(acceptCookies)
+        cookieManager.setAcceptThirdPartyCookies(webView, acceptCookies && !blockThirdPartyCookies)
     }
 
     private fun cookieNamesForOrigin(cookieHeader: String?): Set<String> =

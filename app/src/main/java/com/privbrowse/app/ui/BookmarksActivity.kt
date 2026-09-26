@@ -24,6 +24,7 @@ class BookmarksActivity : AppCompatActivity() {
         setContentView(R.layout.activity_bookmarks)
         title = getString(R.string.bookmarks)
 
+        findViewById<android.view.View>(R.id.btnBackPage).setOnClickListener { finish() }
         db = DbHelper(this)
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         val emptyText = findViewById<TextView>(R.id.emptyText)

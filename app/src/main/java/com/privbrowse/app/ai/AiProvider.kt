@@ -4,60 +4,72 @@ enum class AiProvider(
     val label: String,
     val defaultModel: String,
     val endpoint: String,
-    // Common, known-good model IDs for this provider, newest/most useful
-    // first. Kept short on purpose — the "+ Add new model" entry in the
-    // picker covers anything released after this list was last updated,
-    // so users are never stuck waiting for an app update to use a new model.
     val models: List<String>
 ) {
     GROQ(
-        "Groq", "llama-3.3-70b-versatile",
+        "Groq",
+        "openai/gpt-oss-20b",
         "https://api.groq.com/openai/v1/chat/completions",
         listOf(
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
             "llama-3.3-70b-versatile",
             "llama-3.1-8b-instant",
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it"
+            "groq/compound-mini"
         )
     ),
     OPENROUTER(
-        "OpenRouter", "openai/gpt-4o",
+        "OpenRouter",
+        "openai/gpt-5.4-mini",
         "https://openrouter.ai/api/v1/chat/completions",
         listOf(
-            "openai/gpt-4o",
-            "openai/gpt-4o-mini",
-            "anthropic/claude-3.5-sonnet",
-            "google/gemini-pro-1.5",
-            "meta-llama/llama-3.1-70b-instruct",
-            "deepseek/deepseek-chat"
+            "openai/gpt-5.4-mini",
+            "openai/gpt-5.4",
+            "google/gemini-3.8-flash",
+            "anthropic/claude-sonnet-4.6",
+            "deepseek/deepseek-chat",
+            "openrouter/auto"
         )
     ),
     OPENAI(
-        "OpenAI", "gpt-4o-mini",
+        "OpenAI",
+        "gpt-5.4-mini",
         "https://api.openai.com/v1/chat/completions",
         listOf(
-            "gpt-4o",
-            "gpt-4o-mini",
-            "gpt-4-turbo",
-            "o1-mini"
+            "gpt-5.4-mini",
+            "gpt-5.4",
+            "gpt-4.1-mini",
+            "gpt-4o-mini"
         )
     ),
     GEMINI(
-        "Gemini", "gemini-1.5-flash",
+        "Gemini",
+        "gemini-3.8-flash",
         "https://generativelanguage.googleapis.com/v1beta/models/",
         listOf(
-            "gemini-2.0-flash",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash"
+            "gemini-3.8-flash",
+            "gemini-3.7-flash",
+            "gemini-3.1-flash-lite",
+            "gemini-3.1-pro-preview",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-pro"
         )
     ),
     ANTHROPIC(
-        "Anthropic", "claude-3-5-sonnet-20241022",
+        "Anthropic",
+        "claude-sonnet-4-6",
         "https://api.anthropic.com/v1/messages",
         listOf(
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-            "claude-3-opus-20240229"
+            "claude-sonnet-4-6",
+            "claude-opus-4-8",
+            "claude-haiku-4-5-20251001"
         )
+    ),
+    CUSTOM(
+        "Custom OpenAI-compatible",
+        "your-model-id",
+        "https://example.com/v1/chat/completions",
+        emptyList()
     )
 }

@@ -10,10 +10,20 @@ object V2RayStore {
     private const val RUNTIME = "runtime_state"
     private const val SECURE_CONFIG = "v2ray_json"
     private const val SESSION = "active_session"
+    private const val LABEL = "server_label"
+    private const val TUNNEL_MODE = "tunnel_mode"
 
     private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     fun getConfig(c: Context): String = SecureStore.get(c, SECURE_CONFIG) ?: ""
     fun setConfig(c: Context, config: String) = SecureStore.put(c, SECURE_CONFIG, config)
+
+    /** Short display name for the saved server, so Quick mode can show "Connected: <label>". */
+    fun getLabel(c: Context): String = prefs(c).getString(LABEL, "").orEmpty()
+    fun setLabel(c: Context, label: String) = prefs(c).edit().putString(LABEL, label).apply()
+
+    /** 1 = real packet tunnel (whole app), 2 = WebView-only proxy. Defaults to the simplest, most compatible option. */
+    fun getTunnelMode(c: Context): Int = prefs(c).getInt(TUNNEL_MODE, 1)
+    fun setTunnelMode(c: Context, mode: Int) = prefs(c).edit().putInt(TUNNEL_MODE, mode).apply()
     fun isEnabled(c: Context) = prefs(c).getBoolean(ENABLED, false)
     fun setEnabled(c: Context, value: Boolean) = prefs(c).edit().putBoolean(ENABLED, value).apply()
     fun getSplit(c: Context): Set<String> = prefs(c).getStringSet(SPLIT, emptySet()).orEmpty()
