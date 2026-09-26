@@ -17,13 +17,14 @@
     <string name="incognito_label">Private</string>
 
     <!-- Phase 5 -->
-    <string name="vpn_menu">VPN (Phase 5)</string>
-    <string name="phase4_menu">Advanced privacy (Phase 4)</string>
-    <string name="v2ray_menu">V2Ray tunnels (Phase 6)</string>
-    <string name="ai_copilot_menu">AI Copilot (Phase 7)</string>
-    <string name="video_downloads_menu">Video downloads (Phase 8)</string>
+    <string name="vpn_menu">VPN</string>
+    <string name="phase4_menu">Advanced privacy</string>
+    <string name="v2ray_menu">V2Ray tunnels</string>
+    <string name="ai_copilot_menu">AI Copilot</string>
+    <string name="video_downloads_menu">Video downloads</string>
     <string name="reader_mode_menu">Reader mode</string>
     <string name="panic_menu">PANIC — clear browsing data</string>
+    <string name="fresh_identity_menu">Fresh identity per tab</string>
     <string name="vpn_disclaimer">VPN Gate is a volunteer-run relay network, not a commercial no-logs VPN. Traffic passes through servers run by strangers, some of whom may log connection or usage data. Use this only if you accept that trade-off.</string>
     <string name="vpn_rotation_label">Auto-rotate server every</string>
     <string name="vpn_discovery_note">VPN Gate server discovery only. Traffic is not rerouted in this build.</string>

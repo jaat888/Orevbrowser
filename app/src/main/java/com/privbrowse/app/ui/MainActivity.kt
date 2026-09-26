@@ -5,12 +5,16 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Patterns
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
@@ -21,8 +25,9 @@ import android.webkit.WebView
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.PopupMenu
+import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -33,7 +38,9 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.privbrowse.app.R
 import com.privbrowse.app.adblock.AdBlocker
 import com.privbrowse.app.adblock.BlockCategory
@@ -45,6 +52,7 @@ import com.privbrowse.app.transparency.PrivacyScore
 import com.privbrowse.app.transparency.WeeklyReportScheduler
 import com.privbrowse.app.privacy.BiometricLock
 import com.privbrowse.app.privacy.DomainPrivacyStore
+import com.privbrowse.app.privacy.FingerprintRandomizer
 import com.privbrowse.app.privacy.ReaderMode
 import com.privbrowse.app.panic.PanicManager
 import com.privbrowse.app.video.VideoDetector
@@ -56,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         const val SEARCH_URL_PREFIX = "https://duckduckgo.com/?q="
         const val PREFS = "privbrowse_prefs"
         const val KEY_DARK_MODE = "dark_mode"
+        const val KEY_FRESH_IDENTITY = "fresh_identity_per_tab"
         private const val REQ_BOOKMARKS = 100
         private const val REQ_HISTORY = 101
         private const val REQ_NOTIFICATIONS = 102
@@ -171,6 +180,15 @@ class MainActivity : AppCompatActivity() {
         tabStrip.adapter = tabAdapter
     }
 
+    /**
+     * The tab strip only earns its screen space once there's an actual choice
+     * to make between tabs. With a single tab open it stays collapsed so the
+     * page gets that row back; it reappears the moment a second tab exists.
+     */
+    private fun updateTabStripVisibility() {
+        tabStrip.visibility = if (tabs.size > 1) View.VISIBLE else View.GONE
+    }
+
     private fun setupToolbar() {
         urlBar.setOnEditorActionListener { _, actionId, event ->
             val isEnter = event != null && event.keyCode == KeyEvent.KEYCODE_ENTER
@@ -197,74 +215,144 @@ class MainActivity : AppCompatActivity() {
         privacyBadge.setOnClickListener { showPrivacyScoreDialog() }
     }
 
-    private fun showOverflowMenu(anchor: View) {
-        val popup = PopupMenu(this, anchor)
-        popup.menuInflater.inflate(R.menu.main_menu, popup.menu)
-        popup.menu.findItem(R.id.menu_dark_mode).isChecked = prefs.getBoolean(KEY_DARK_MODE, false)
-        popup.menu.findItem(R.id.menu_desktop_mode).isChecked = currentTab()?.isDesktopMode ?: false
+    /** dp -> px, used only for building this programmatic bottom sheet. */
+    private fun dp(value: Int): Int =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics).toInt()
 
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.menu_bookmarks -> {
-                    startActivityForResult(Intent(this, BookmarksActivity::class.java), REQ_BOOKMARKS)
-                    true
-                }
-                R.id.menu_history -> {
-                    startActivityForResult(Intent(this, HistoryActivity::class.java), REQ_HISTORY)
-                    true
-                }
-                R.id.menu_add_bookmark -> {
-                    addCurrentPageBookmark()
-                    true
-                }
-                R.id.menu_incognito_tab -> {
-                    openNewTab(HOME_URL, incognito = true)
-                    true
-                }
-                R.id.menu_vpn -> {
-                    startActivity(Intent(this, VpnActivity::class.java))
-                    true
-                }
-                R.id.menu_phase4 -> {
-                    startActivity(Intent(this, Phase4Activity::class.java))
-                    true
-                }
-                R.id.menu_v2ray -> {
-                    startActivity(Intent(this, V2RayActivity::class.java))
-                    true
-                }
-                R.id.menu_ai_copilot -> {
-                    startActivity(Intent(this, AiCopilotActivity::class.java))
-                    true
-                }
-                R.id.menu_video_downloads -> {
-                    openDetectedVideoDownloads()
-                    true
-                }
-                R.id.menu_reader_mode -> {
-                    currentTab()?.webView?.evaluateJavascript(ReaderMode.SCRIPT, null)
-                    true
-                }
-                R.id.menu_panic -> {
-                    showPanicDialog()
-                    true
-                }
-                R.id.menu_network_log -> {
-                    startActivity(Intent(this, TransparencyLogActivity::class.java))
-                    true
-                }
-                R.id.menu_dark_mode -> {
-                    toggleDarkMode()
-                    true
-                }
-                R.id.menu_desktop_mode -> {
-                    toggleDesktopMode()
-                    true
-                }
-                else -> false
+    private fun sheetHeader(container: LinearLayout, label: String) {
+        container.addView(TextView(this).apply {
+            text = label.uppercase()
+            textSize = 12f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.accent))
+            setPadding(dp(20), dp(18), dp(20), dp(6))
+        })
+    }
+
+    private fun sheetDivider(container: LinearLayout) {
+        container.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                leftMargin = dp(20); rightMargin = dp(20); topMargin = dp(8); bottomMargin = dp(2)
+            }
+            setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.divider))
+        })
+    }
+
+    private fun sheetRow(container: LinearLayout, label: String, trailing: String? = null, onClick: () -> Unit) {
+        val ripple = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, ripple, true)
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            setBackgroundResource(ripple.resourceId)
+            setPadding(dp(20), dp(14), dp(20), dp(14))
+            setOnClickListener { onClick() }
+        }
+        row.addView(TextView(this).apply {
+            text = label
+            textSize = 15f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_light))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        if (trailing != null) {
+            row.addView(TextView(this).apply {
+                text = trailing
+                textSize = 13f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light))
+            })
+        }
+        container.addView(row, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+    }
+
+    /**
+     * Grouped, theme-matched replacement for the old flat PopupMenu (which rendered as a
+     * plain unstyled system list tall enough to cover the whole page). This is a bottom
+     * sheet: it only takes up part of the screen, is swipe-to-dismiss, and organizes the
+     * 14 destinations into scannable sections instead of one long undifferentiated list.
+     */
+    private fun showOverflowMenu(anchor: View) {
+        val dialog = BottomSheetDialog(this)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(ContextCompat.getColor(this@MainActivity, R.color.surface_light))
+                val r = dp(20).toFloat()
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
             }
         }
-        popup.show()
+
+        content.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(36), dp(4)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = dp(10)
+            }
+            background = GradientDrawable().apply {
+                setColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted_light))
+                cornerRadius = dp(2).toFloat()
+            }
+        })
+
+        sheetHeader(content, "Browse")
+        sheetRow(content, getString(R.string.bookmarks)) {
+            dialog.dismiss(); startActivityForResult(Intent(this, BookmarksActivity::class.java), REQ_BOOKMARKS)
+        }
+        sheetRow(content, getString(R.string.history)) {
+            dialog.dismiss(); startActivityForResult(Intent(this, HistoryActivity::class.java), REQ_HISTORY)
+        }
+        sheetRow(content, getString(R.string.add_bookmark)) { dialog.dismiss(); addCurrentPageBookmark() }
+        sheetRow(content, getString(R.string.incognito_tab)) { dialog.dismiss(); openNewTab(HOME_URL, incognito = true) }
+
+        sheetDivider(content)
+        sheetHeader(content, "Privacy & security")
+        sheetRow(content, getString(R.string.network_log)) {
+            dialog.dismiss(); startActivity(Intent(this, TransparencyLogActivity::class.java))
+        }
+        sheetRow(content, getString(R.string.phase4_menu)) {
+            dialog.dismiss(); startActivity(Intent(this, Phase4Activity::class.java))
+        }
+        sheetRow(content, getString(R.string.vpn_menu)) {
+            dialog.dismiss(); startActivity(Intent(this, VpnActivity::class.java))
+        }
+        sheetRow(content, getString(R.string.v2ray_menu)) {
+            dialog.dismiss(); startActivity(Intent(this, V2RayActivity::class.java))
+        }
+        sheetRow(content, getString(R.string.panic_menu)) { dialog.dismiss(); showPanicDialog() }
+        val identityOn = prefs.getBoolean(KEY_FRESH_IDENTITY, true)
+        sheetRow(content, getString(R.string.fresh_identity_menu), if (identityOn) "On" else "Off") {
+            dialog.dismiss(); toggleFreshIdentity()
+        }
+
+        sheetDivider(content)
+        sheetHeader(content, "Tools")
+        sheetRow(content, getString(R.string.ai_copilot_menu)) {
+            dialog.dismiss(); startActivity(Intent(this, AiCopilotActivity::class.java))
+        }
+        sheetRow(content, getString(R.string.video_downloads_menu)) { dialog.dismiss(); openDetectedVideoDownloads() }
+        sheetRow(content, getString(R.string.reader_mode_menu)) {
+            dialog.dismiss(); currentTab()?.webView?.evaluateJavascript(ReaderMode.SCRIPT, null)
+        }
+
+        sheetDivider(content)
+        sheetHeader(content, "Display")
+        val darkOn = prefs.getBoolean(KEY_DARK_MODE, false)
+        sheetRow(content, getString(R.string.dark_mode), if (darkOn) "On" else "Off") {
+            dialog.dismiss(); toggleDarkMode()
+        }
+        val desktopOn = currentTab()?.isDesktopMode ?: false
+        sheetRow(content, getString(R.string.desktop_mode), if (desktopOn) "On" else "Off") {
+            dialog.dismiss(); toggleDesktopMode()
+        }
+
+        content.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(12))
+        })
+
+        dialog.setContentView(ScrollView(this).apply { addView(content) })
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.behavior.peekHeight = (resources.displayMetrics.heightPixels * 0.55).toInt()
+        dialog.show()
     }
 
     private fun addCurrentPageBookmark() {
@@ -321,6 +409,20 @@ class MainActivity : AppCompatActivity() {
         recreate()
     }
 
+    private fun toggleFreshIdentity() {
+        val newValue = !prefs.getBoolean(KEY_FRESH_IDENTITY, true)
+        prefs.edit().putBoolean(KEY_FRESH_IDENTITY, newValue).apply()
+        // The document-start script is fixed to the WebView instance that
+        // received it, so this takes effect for tabs opened from now on —
+        // same as desktop mode and incognito, which are also set at tab
+        // creation rather than retrofitted onto an open tab.
+        Toast.makeText(
+            this,
+            if (newValue) "New tabs will get a fresh fingerprint" else "New tabs will use the real device fingerprint",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
     private fun applyWebViewDarkMode(webView: WebView, dark: Boolean) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(webView.settings, dark)
@@ -365,6 +467,21 @@ class MainActivity : AppCompatActivity() {
         webView.settings.displayZoomControls = false
         applyWebViewDarkMode(webView, prefs.getBoolean(KEY_DARK_MODE, false))
 
+        // Fresh identity per tab: each tab gets its own canvas/audio/WebGL/
+        // hardware-profile noise, seeded from its tab id, injected before any
+        // page script runs on every navigation in this WebView. See
+        // privacy/FingerprintRandomizer.kt for why this — not a literal
+        // "Android ID" — is what actually defeats cross-tab fingerprinting.
+        if (prefs.getBoolean(KEY_FRESH_IDENTITY, true) &&
+            WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+        ) {
+            WebViewCompat.addDocumentStartJavaScript(
+                webView,
+                FingerprintRandomizer.script(nextTabId),
+                setOf("*")
+            )
+        }
+
         // Phase 2: third-party cookies are blocked on every tab, always.
         CookiePolicy.configureWebView(webView)
         if (incognito) {
@@ -391,6 +508,7 @@ class MainActivity : AppCompatActivity() {
         webView.visibility = View.GONE
 
         tabAdapter.notifyItemInserted(tabs.size - 1)
+        updateTabStripVisibility()
         switchToTab(tabs.size - 1)
         webView.loadUrl(url)
     }
@@ -418,6 +536,7 @@ class MainActivity : AppCompatActivity() {
         webViewContainer.removeView(tab.webView)
         tab.webView.destroy()
         tabAdapter.notifyItemRemoved(position)
+        updateTabStripVisibility()
 
         if (tabs.isEmpty()) {
             currentTabIndex = 0
@@ -530,6 +649,13 @@ class MainActivity : AppCompatActivity() {
             }
             progressBar.visibility = View.VISIBLE
             updatePrivacyBadge(tab)
+            if (prefs.getBoolean(KEY_FRESH_IDENTITY, true) &&
+                !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+            ) {
+                // Older WebView: no true document-start hook, so this is a
+                // best-effort injection as early in the load as we can get.
+                view.evaluateJavascript(FingerprintRandomizer.script(tab.id), null)
+            }
         }
 
         override fun onPageFinished(view: WebView, url: String?) {

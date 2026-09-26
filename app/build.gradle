@@ -13,12 +13,27 @@ android {
         targetSdk 34
         versionCode 3
         versionName "1.0.0-phase9-fixed2"
+
+        ndk {
+            // Real phones are arm; x86/x86_64 only matter for emulators.
+            // libXray's Go-built .so is large per-ABI, so dropping the two
+            // emulator-only ABIs alone roughly halves the APK.
+            abiFilters "armeabi-v7a", "arm64-v8a"
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Keep the debug APK aligned with release ABI scope so CI test
+            // builds aren't 2x bigger for no reason.
+            ndk {
+                abiFilters "arm64-v8a"
+            }
         }
     }
 
