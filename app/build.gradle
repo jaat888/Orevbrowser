@@ -20,6 +20,19 @@ android {
             // emulator-only ABIs alone roughly halves the APK.
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
+
+        // ics-openvpn's :main module (aliased as :openvpn here) declares a
+        // flavorDimension "implementation" with flavors "ui" (openvpn3=true,
+        // needs SWIG to build the native ovpn3/SWIG JNI bridge) and
+        // "skeleton" (openvpn3=false, classic engine only). :app has no such
+        // dimension, so without telling Gradle which one to use,
+        // ":app:assembleDebug" fails to pick a variant of ":openvpn"
+        // ("Cannot choose between the following variants..."). We only ever
+        // call the classic de.blinkt.openvpn.* API (ConfigParser, VpnProfile,
+        // ProfileManager, VPNLaunchHelper, OpenVPNService) from
+        // PrivBrowseVpnService.kt — never net.openvpn.ovpn3 — so "skeleton"
+        // is correct, and it conveniently means SWIG is never needed.
+        missingDimensionStrategy 'implementation', 'skeleton'
     }
 
     buildTypes {
