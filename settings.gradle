@@ -1,4 +1,24 @@
 pluginManagement {
+    resolutionStrategy {
+        // ics-openvpn's own main/build.gradle.kts requests
+        // com.android.application version 9.0.0 through its own catalog —
+        // but its actual script code (Configure project :openvpn) still
+        // uses the OLD, pre-AGP9 variant API (applicationVariants.all,
+        // srcDirs, registerJavaGeneratingTask, etc.), which AGP 9 removed
+        // entirely ("Unresolved reference 'applicationVariants'"). So its
+        // own version pin doesn't match what its own code actually needs.
+        // Rather than trust either side's requested version, force EVERY
+        // request for this plugin id — ours or ics-openvpn's, whatever
+        // version string it asks for — to resolve to one explicit,
+        // compatible module. This is also what avoids the earlier
+        // "already on the classpath with an unknown version" conflict:
+        // there is now only ever one real resolution path for this plugin.
+        eachPlugin {
+            if (requested.id.id == 'com.android.application' || requested.id.id == 'com.android.library') {
+                useModule('com.android.tools.build:gradle:8.2.2')
+            }
+        }
+    }
     repositories {
         google()
         mavenCentral()
@@ -6,7 +26,13 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // PREFER_SETTINGS (not FAIL_ON_PROJECT_REPOS): if libs/ics-openvpn's own
+    // main/build.gradle.kts declares any repositories{} block of its own
+    // (common in older Android modules), FAIL_ON_PROJECT_REPOS would hard-
+    // fail the build over that alone ("... was added by project :openvpn").
+    // PREFER_SETTINGS still uses these repos first for everything, but
+    // doesn't error out if :openvpn adds its own — just ignores/logs it.
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()

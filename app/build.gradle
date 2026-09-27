@@ -1,10 +1,9 @@
-// No org.jetbrains.kotlin.android plugin here on purpose: AGP 9.0's
-// "built-in Kotlin" compiles Kotlin sources itself now, and applying that
-// plugin as well fails with "The 'org.jetbrains.kotlin.android' plugin is
-// no longer required for Kotlin support since AGP 9.0." (see root
-// build.gradle for where AGP's own version is pinned).
+// Kotlin-android plugin re-added here: only AGP 9's "built-in Kotlin"
+// replaced the need for it, and we've reverted to AGP 8.2.2 (see root
+// build.gradle / settings.gradle for why), so this is required again.
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
@@ -58,19 +57,13 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     buildFeatures {
         viewBinding true
         buildConfig true
-    }
-}
-
-// Built-in Kotlin (AGP 9.0+) replaces the old `android.kotlinOptions{}` DSL
-// (which came from the now-removed org.jetbrains.kotlin.android plugin)
-// with this top-level `kotlin{}` block.
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

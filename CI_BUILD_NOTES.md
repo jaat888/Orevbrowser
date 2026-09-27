@@ -1,39 +1,43 @@
 # CI build notes
 
-The project targets Gradle 9.2.0, Android Gradle Plugin 9.0.0, Kotlin Gradle Plugin 2.2.20, compile/target SDK 34 and JDK 17.
+The project targets Gradle 8.5, Android Gradle Plugin 8.2.2, Kotlin 1.9.22, compile/target SDK 34 and JDK 17.
 
-## AGP/Gradle version bump (was Gradle 8.5 / AGP 8.2.2 / Kotlin 1.9.22)
+## AGP plugin-version conflict with libs/ics-openvpn (resolved via settings.gradle)
 
 `libs/ics-openvpn`'s own `main/build.gradle.kts` (real schwabe/ics-openvpn
-v0.7.64 source) requests `com.android.application` version `9.0.0` through
-its own version catalog (which `settings.gradle` wires in as our `libs`
-catalog). A single Gradle build can only have one AGP version on the
-classpath, so the root project previously applying AGP 8.2.2 via an old-style
-`buildscript{ classpath ... }` block conflicted with that request:
+v0.7.64 source, cloned fresh by CI) requests `com.android.application`
+version `9.0.0` through its own version catalog (wired in as our `libs`
+catalog by `settings.gradle`). Two different attempts were made here:
 
-    Error resolving plugin [id: 'com.android.application', version: '9.0.0']
-    > The request for this plugin could not be satisfied because the plugin
-      is already on the classpath with an unknown version, so compatibility
-      cannot be checked.
+1. First, the root project's old `buildscript{ classpath ... }`-style AGP
+   8.2.2 application conflicted with that plugins-DSL request for a
+   different version, failing with "already on the classpath with an
+   unknown version".
+2. So the whole project was bumped to match ics-openvpn's requested AGP
+   9.0.0 (plus Gradle 9.2.0, Kotlin 2.2.20, AGP 9's built-in-Kotlin). That
+   config phase succeeded, but `:openvpn`'s actual build script failed to
+   even *configure*: its real code (`Configure project :openvpn`) still
+   calls the old, pre-AGP9 variant API — `android.applicationVariants.all`,
+   `srcDirs`, `registerJavaGeneratingTask`, etc. — which AGP 9 removed
+   outright ("Unresolved reference 'applicationVariants'"). So
+   ics-openvpn's catalog version pin (9.0.0) doesn't match what its own
+   script code actually needs.
 
-Fix: root `build.gradle` now declares AGP and Kotlin via the modern
-`plugins { ... apply false }` DSL, pinned to the exact same AGP version
-ics-openvpn requests (9.0.0), so both `:app` and `:openvpn` resolve to one
-consistent plugin/version. That pulled in matching bumps: Gradle wrapper and
-the workflow's `Setup Gradle` step to 9.2.0 (AGP 9.0.0 requires Gradle
->= 9.1.0), Kotlin Gradle Plugin to 2.2.20 (AGP 9.0.0 requires KGP >= 2.2.10),
-and installing NDK 28.2.13676358 in CI (AGP 9.0.0's new default, since
-neither module sets `android.ndkVersion` explicitly).
+Final fix: back to AGP 8.2.2 / Gradle 8.5 / Kotlin 1.9.22 (this file's
+top line), and `settings.gradle`'s `pluginManagement.resolutionStrategy.eachPlugin`
+now force-resolves *every* request for `com.android.application`/
+`com.android.library` — ours or ics-openvpn's, whatever version either one
+asks for — to the explicit module `com.android.tools.build:gradle:8.2.2`.
+That keeps `:app` and `:openvpn` on one consistent, actually-compatible AGP
+version regardless of what ics-openvpn's own catalog says, and sidesteps
+the "already on the classpath" conflict entirely since there's only ever
+one real resolution path for that plugin id now.
 
-If `libs/ics-openvpn` is ever re-pinned to a different tag that requests a
-different AGP version, update the version in root `build.gradle` to match
-it exactly, plus the Gradle version in both `gradle-wrapper.properties` and
-the workflow's `Setup Gradle` step if that new AGP version's minimum Gradle
-requirement is higher.
-
-Before running `:app:assembleDebug` or `:app:assembleRelease`, provide the real `app/libs/libXray.aar` binary used by the V2Ray/Xray bridge. The source code intentionally keeps this dependency external because a placeholder AAR would produce an APK whose tunnel feature does not actually work.
-
-A no-SDK static validation script is included at `scripts/audit_privbrowse.py`; it checks Feature Center action/key references, MainActivity action branches and activity links.
+If `libs/ics-openvpn` is ever re-pinned to a tag whose *code* has actually
+migrated to AGP 9's new variant API, this override (and the AGP/Gradle/
+Kotlin versions above) can be revisited — but don't just match its
+catalog's version number without checking its actual script code first,
+per the above.
 
 ## VPN Gate / ics-openvpn (GPLv2)
 
@@ -57,3 +61,7 @@ environment issue than an API mismatch.
 See `NOTICE.md` and `libs/ics-openvpn/README.txt` for the licensing
 consequence of this dependency: it makes the whole app GPL, not just the
 VPN feature.
+
+Before running `:app:assembleDebug` or `:app:assembleRelease`, provide the real `app/libs/libXray.aar` binary used by the V2Ray/Xray bridge. The source code intentionally keeps this dependency external because a placeholder AAR would produce an APK whose tunnel feature does not actually work.
+
+A no-SDK static validation script is included at `scripts/audit_privbrowse.py`; it checks Feature Center action/key references, MainActivity action branches and activity links.
