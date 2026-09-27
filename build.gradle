@@ -1,5 +1,5 @@
-// AGP + Kotlin are declared here via the plugins{} DSL (apply false) instead
-// of the old buildscript{} classpath mechanism. Why: libs/ics-openvpn's own
+// AGP is declared here via the plugins{} DSL (apply false) instead of the
+// old buildscript{} classpath mechanism. Why: libs/ics-openvpn's own
 // main/build.gradle.kts (real schwabe/ics-openvpn v0.7.64 source, cloned by
 // CI) requests `com.android.application` version 9.0.0 through its own
 // version catalog. A single Gradle build can only ever have ONE version of
@@ -12,12 +12,21 @@
 // declare the SAME version (9.0.0, matching ics-openvpn's pin) once here,
 // so :app and :openvpn both resolve to the one plugin instance/version.
 //
-// AGP 9.0.0 requires Gradle >= 9.1.0 and Kotlin Gradle Plugin >= 2.2.10 —
-// see gradle/wrapper/gradle-wrapper.properties and the "Setup Gradle" step
-// in .github/workflows/build.yml, both bumped alongside this file.
+// AGP 9.0.0 requires Gradle >= 9.1.0 — see gradle/wrapper/gradle-wrapper.properties
+// and the "Setup Gradle" step in .github/workflows/build.yml, both bumped
+// alongside this file.
+//
+// No Kotlin plugin is declared here on purpose: AGP 9.0+ has "built-in
+// Kotlin" and compiles Kotlin sources itself. Applying
+// org.jetbrains.kotlin.android as well now fails with "The
+// 'org.jetbrains.kotlin.android' plugin is no longer required for Kotlin
+// support since AGP 9.0." — see app/build.gradle, which no longer applies
+// it either. (If a newer/older Kotlin Gradle Plugin version is ever needed
+// again, AGP's docs say to override it via an explicit
+// `buildscript { dependencies { classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:X") } }`
+// block here — not by re-adding the plugin id.)
 plugins {
     id 'com.android.application' version '9.0.0' apply false
-    id 'org.jetbrains.kotlin.android' version '2.2.20' apply false
 }
 
 tasks.register('clean', Delete) {
