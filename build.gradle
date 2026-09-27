@@ -1,15 +1,25 @@
-buildscript {
-    ext.kotlin_version = "1.9.22"
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath "com.android.tools.build:gradle:8.2.2"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
+// AGP + Kotlin are declared here via the plugins{} DSL (apply false) instead
+// of the old buildscript{} classpath mechanism. Why: libs/ics-openvpn's own
+// main/build.gradle.kts (real schwabe/ics-openvpn v0.7.64 source, cloned by
+// CI) requests `com.android.application` version 9.0.0 through its own
+// version catalog. A single Gradle build can only ever have ONE version of
+// AGP on the classpath — mixing an old-style buildscript-classpath AGP
+// (which Gradle can't compare a version against) with a plugins-DSL request
+// for a *different* version is exactly what produced:
+//   "Error resolving plugin [id: 'com.android.application', version: '9.0.0']
+//    ... already on the classpath with an unknown version"
+// The fix is to stop applying AGP via buildscript{} entirely and instead
+// declare the SAME version (9.0.0, matching ics-openvpn's pin) once here,
+// so :app and :openvpn both resolve to the one plugin instance/version.
+//
+// AGP 9.0.0 requires Gradle >= 9.1.0 and Kotlin Gradle Plugin >= 2.2.10 —
+// see gradle/wrapper/gradle-wrapper.properties and the "Setup Gradle" step
+// in .github/workflows/build.yml, both bumped alongside this file.
+plugins {
+    id 'com.android.application' version '9.0.0' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.20' apply false
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
 }
