@@ -57,6 +57,20 @@ jobs:
           git clone --recursive --branch v0.7.64 https://github.com/schwabe/ics-openvpn.git libs/ics-openvpn
           test -f libs/ics-openvpn/main/build.gradle || test -f libs/ics-openvpn/main/build.gradle.kts
 
+      # ics-openvpn's own gradle/libs.versions.toml requests AGP at whatever
+      # version its maintainers currently pin (seen: 9.0.0), which does not
+      # match the AGP version our root build.gradle/settings.gradle pin
+      # (8.2.2) and that ics-openvpn's own build.gradle.kts code actually
+      # needs. settings.gradle's pluginManagement.resolutionStrategy already
+      # forces BOTH requests to resolve to the same module (8.2.2), but
+      # Gradle still separately compares the two REQUESTED version strings
+      # and fails with "already on the classpath with a different version"
+      # even when both resolve to the identical artifact. So we rewrite the
+      # requested version in ics-openvpn's own catalog file in place, right
+      # after cloning it and before Gradle ever reads it.
+      - name: Patch ics-openvpn's AGP version to match ours
+        run: python3 scripts/patch_ics_openvpn_agp_version.py
+
       # ics-openvpn's main/build.gradle(.kts) sets its OWN `ndkVersion`
       # (independent of whatever NDK we install for libXray below). If that
       # exact side-by-side NDK isn't already present, AGP may fail to
