@@ -39,13 +39,13 @@ import org.json.JSONObject
  *    JSON config) and tune routing/tunnel mode. This is "Hard"/advanced
  *    mode — everything that used to live on the separate V2Ray screen.
  *
- * A "Public relay list" entry under Quick keeps the old VPN Gate discovery
- * feature reachable (still discovery-only, never silently claimed as a
- * real connection — see PrivBrowseVpnService/README for why).
+ * A "Public relay list" entry under Quick keeps the VPN Gate discovery
+ * feature reachable; tapping a relay now actually connects through the
+ * ics-openvpn engine (GPLv2 — see NOTICE.md and PrivBrowseVpnService).
  */
 class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
 
-    companion object { private const val REQ_VPN = 2603 }
+    companion object { private const val REQ_VPN = 2603; private const val REQ_VPN_RELAY = 2604 }
 
     private enum class Tab { QUICK, CUSTOM }
     private var tab = Tab.QUICK
@@ -220,6 +220,94 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
             setPadding(dp(4), dp(8), 0, dp(4))
             setOnClickListener { showPublicRelayDialog() }
         })
+
+        addView(TextView(this@VpnActivity).apply {
+            text = "Tor (via Orbot)"
+            textSize = 13f
+            setTextColor(color(R.color.text_muted_light))
+            setPadding(dp(4), dp(8), 0, dp(4))
+            setOnClickListener { showTorDialog() }
+        })
+    }
+
+    // -------------------------------------------------- Tor via Orbot
+    // We don't ship or reimplement Tor ourselves — that's real cryptographic,
+    // security-critical code that belongs to people who specialize in it.
+    // Orbot (org.torproject.android) already is that, open-source and
+    // widely audited. If it's installed and its local SOCKS port actually
+    // answers, we point WebView's proxy at it — same mechanism as the
+    // V2Ray tunnel above. If it isn't reachable, this says so plainly
+    // instead of pretending to be connected.
+
+    private fun showTorDialog() {
+        val installed = com.privbrowse.app.tor.TorBridge.isOrbotInstalled(this)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(16), dp(20), dp(4))
+        }
+        val statusLine = TextView(this).apply {
+            textSize = 13f
+            setTextColor(color(R.color.text_light))
+            setPadding(0, 0, 0, dp(14))
+        }
+        container.addView(TextView(this).apply {
+            text = "Routes browser traffic through Orbot's local Tor proxy. Orbot is a separate, independent open-source app (Guardian Project) — PrivBrowse only points itself at Orbot once Orbot itself reports it's actually running."
+            textSize = 12f
+            setTextColor(color(R.color.text_muted_light))
+            setPadding(0, 0, 0, dp(12))
+        })
+        container.addView(statusLine)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Tor (via Orbot)")
+            .setView(container)
+            .setPositiveButton(if (installed) "Check & connect" else "Get Orbot", null)
+            .setNeutralButton("Open Orbot") { _, _ -> com.privbrowse.app.tor.TorBridge.openOrbot(this) }
+            .setNegativeButton(R.string.close, null)
+            .create()
+        dialog.show()
+
+        fun refreshStatus() {
+            if (!installed) {
+                statusLine.text = "Orbot isn't installed. Install it, start Tor inside Orbot, then come back here."
+                return
+            }
+            statusLine.text = "Checking whether Orbot's Tor proxy is running..."
+            Thread {
+                val reachable = com.privbrowse.app.tor.TorBridge.isOrbotReachable()
+                runOnUiThread {
+                    if (isFinishing) return@runOnUiThread
+                    statusLine.text = if (reachable)
+                        "Orbot's Tor proxy is running on 127.0.0.1:9050."
+                    else
+                        "Orbot's Tor proxy isn't answering yet. Open Orbot and tap its own Start/power button, then check again."
+                }
+            }.start()
+        }
+        refreshStatus()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (!installed) {
+                startActivity(Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(com.privbrowse.app.tor.TorBridge.playStoreUrl())))
+                return@setOnClickListener
+            }
+            statusLine.text = "Checking..."
+            Thread {
+                val reachable = com.privbrowse.app.tor.TorBridge.isOrbotReachable()
+                runOnUiThread {
+                    if (isFinishing) return@runOnUiThread
+                    if (reachable) {
+                        com.privbrowse.app.tor.TorBridge.applyProxy(this)
+                        setStatus(Connection.CONNECTED, "Browsing through Tor (Orbot)")
+                        connected = true
+                        refreshQuickLabel()
+                        dialog.dismiss()
+                    } else {
+                        statusLine.text = "Still not reachable — start Tor inside Orbot first, then tap Check & connect again."
+                    }
+                }
+            }.start()
+        }
     }
 
     private fun refreshQuickLabel() {
@@ -357,6 +445,14 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
         }.also { it.start() }
     }
 
+    private fun startVpnGateService() {
+        ContextCompat.startForegroundService(
+            this,
+            Intent(this, com.privbrowse.app.vpn.PrivBrowseVpnService::class.java)
+                .setAction(com.privbrowse.app.vpn.PrivBrowseVpnService.ACTION_CONNECT)
+        )
+    }
+
     private fun relayMessage(text: String) = TextView(this).apply {
         this.text = text
         textSize = 13f
@@ -392,7 +488,13 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
             setTextColor(color(R.color.text_muted_light))
         })
         row.setOnClickListener {
-            Toast.makeText(this, R.string.vpn_status_discovery_only, Toast.LENGTH_SHORT).show()
+            // Real OpenVPN engine now backs this (ics-openvpn, GPLv2 - see
+            // NOTICE.md). The service re-ranks and picks the strongest
+            // reachable candidate itself, so every row starts the same
+            // "connect to best available" flow.
+            Toast.makeText(this, "Connecting via VPN Gate...", Toast.LENGTH_SHORT).show()
+            val consent = VpnService.prepare(this)
+            if (consent != null) startActivityForResult(consent, REQ_VPN_RELAY) else startVpnGateService()
         }
         val lp = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) }
         row.layoutParams = lp
@@ -633,6 +735,7 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
     private fun disconnectAll() {
         startService(Intent(this, V2RayVpnService::class.java).setAction(V2RayVpnService.ACTION_DISCONNECT))
         startService(Intent(this, XrayWebViewProxyService::class.java).setAction(XrayWebViewProxyService.ACTION_DISCONNECT))
+        com.privbrowse.app.tor.TorBridge.clearProxy(this)
         V2RayStore.clearSession(this)
         setStatus(Connection.STOPPED, "Disconnecting...")
     }
@@ -655,8 +758,13 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
             Connection.CONNECTED -> {
                 dotColor = color(R.color.accent)
                 statusText.text = "Connected"
-                statusSub.visibility = if (V2RayStore.getLabel(this).isNotBlank()) View.VISIBLE else View.GONE
-                statusSub.text = V2RayStore.getLabel(this)
+                // Bug fix: this used to ignore `message` entirely and always show the
+                // V2Ray-store label, so a real VPN Gate/Tor connection (whose caller
+                // passes a specific "Connected via ..." message) silently displayed
+                // stale or unrelated V2Ray label text instead.
+                val sub = message ?: V2RayStore.getLabel(this)
+                statusSub.visibility = if (sub.isNotBlank()) View.VISIBLE else View.GONE
+                statusSub.text = sub
             }
             Connection.CONNECTING -> {
                 dotColor = color(R.color.accent)
@@ -681,12 +789,52 @@ class VpnActivity : androidx.appcompat.app.AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQ_VPN && resultCode == Activity.RESULT_OK) startPacketService()
         else if (requestCode == REQ_VPN) setStatus(Connection.STOPPED, "VPN permission was not granted.")
+        else if (requestCode == REQ_VPN_RELAY && resultCode == Activity.RESULT_OK) startVpnGateService()
+        else if (requestCode == REQ_VPN_RELAY) Toast.makeText(this, "VPN permission was not granted.", Toast.LENGTH_SHORT).show()
     }
 
     private fun paste() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val text = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
         if (text.isNotBlank()) link.setText(text)
+    }
+
+    // -------------------------------------------- VPN Gate status receiver
+
+    private val vpnGateStateReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val label = intent.getStringExtra(com.privbrowse.app.vpn.PrivBrowseVpnService.EXTRA_LABEL)
+            when (intent.getStringExtra(com.privbrowse.app.vpn.PrivBrowseVpnService.EXTRA_STATE)) {
+                com.privbrowse.app.vpn.PrivBrowseVpnService.STATE_CONNECTING ->
+                    setStatus(Connection.CONNECTING, "Finding a VPN Gate relay...")
+                com.privbrowse.app.vpn.PrivBrowseVpnService.STATE_LAUNCHED ->
+                    setStatus(Connection.CONNECTING, "Connecting via ${label ?: "VPN Gate"}...")
+                com.privbrowse.app.vpn.PrivBrowseVpnService.STATE_CONNECTED ->
+                    // Real tunnel-up confirmation from ics-openvpn's VpnStatus.StateListener
+                    // (LEVEL_CONNECTED), not just the earlier handoff - this is what should
+                    // actually flip the status dot green.
+                    setStatus(Connection.CONNECTED, "Connected via ${label ?: "VPN Gate"}")
+                com.privbrowse.app.vpn.PrivBrowseVpnService.STATE_FAILED ->
+                    setStatus(Connection.STOPPED, label ?: "VPN Gate connection failed")
+                com.privbrowse.app.vpn.PrivBrowseVpnService.STATE_DISCONNECTED ->
+                    setStatus(Connection.STOPPED, null)
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            vpnGateStateReceiver,
+            android.content.IntentFilter(com.privbrowse.app.vpn.PrivBrowseVpnService.ACTION_STATE),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onStop() {
+        runCatching { unregisterReceiver(vpnGateStateReceiver) }
+        super.onStop()
     }
 
     override fun onResume() { super.onResume(); if (::statusText.isInitialized) refreshStatus() }

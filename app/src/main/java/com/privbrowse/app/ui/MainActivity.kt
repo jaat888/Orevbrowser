@@ -700,6 +700,14 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setColorSchemeResources(R.color.accent)
         swipeRefresh.setProgressBackgroundColorSchemeResource(R.color.surface_light)
         swipeRefresh.setOnRefreshListener { currentTab()?.webView?.reload() }
+        // SwipeRefreshLayout's default "are we at the top?" check only looks at its direct
+        // child (webViewContainer, a plain FrameLayout), which can never report scroll
+        // position — so it always assumed "yes, at the top" and fired pull-to-refresh on
+        // ANY downward drag anywhere on a page, not just at the actual top. This is why
+        // scrolling kept reloading the page. Ask the real WebView instead.
+        swipeRefresh.setOnChildScrollUpCallback { _, _ ->
+            currentTab()?.webView?.canScrollVertically(-1) == true
+        }
         tabStrip = findViewById(R.id.tabStrip)
         tabStripVertical = findViewById(R.id.tabStripVertical)
         btnBack = findViewById(R.id.btnBack)
@@ -912,9 +920,8 @@ class MainActivity : AppCompatActivity() {
         }
         sheetRow(content, "Site controls") { dialog.dismiss(); showSiteControls() }
         sheetRow(content, "Profiles", "Separate browser data stores") { dialog.dismiss(); startActivity(Intent(this, com.privbrowse.app.ultimate.ProfileActivity::class.java)) }
-        sheetRow(content, "Settings & feature center") { dialog.dismiss(); startActivity(Intent(this, BrowserSettingsActivity::class.java)) }
+        sheetRow(content, "Browser settings") { dialog.dismiss(); startActivity(Intent(this, BrowserSettingsActivity::class.java)) }
         sheetRow(content, "Feature Center", "100+ controls & shortcuts") { dialog.dismiss(); startActivity(Intent(this, FeatureCenterActivity::class.java)) }
-        sheetRow(content, "Ultimate Feature Lab", "Wishlist integrations") { dialog.dismiss(); startActivity(Intent(this, FeatureLabActivity::class.java)) }
 
         sheetDivider(content)
         sheetHeader(content, "Tools")
@@ -1987,6 +1994,14 @@ class MainActivity : AppCompatActivity() {
                 if (idx != -1) tabAdapter.notifyItemChanged(idx)
             }
         }
+
+        override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+            enterFullscreenVideo(view, callback)
+        }
+
+        override fun onHideCustomView() {
+            exitFullscreenVideo()
+        }
     }
 
     private fun scheduleCookieWipe(tab: BrowserTab) {
@@ -2693,11 +2708,78 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        if (customView != null) {
+            currentTab()?.webView?.webChromeClient?.onHideCustomView()
+            return
+        }
         val webView = currentTab()?.webView
         if (webView?.canGoBack() == true) {
             webView.goBack()
         } else {
             super.onBackPressed()
+        }
+    }
+
+    // ---------- HTML5/YouTube fullscreen video ----------
+    // WebView cannot show a <video>'s native fullscreen button on its own; the
+    // page calls back into WebChromeClient.onShowCustomView with a ready-made
+    // fullscreen view, and it's on us to actually display it full-screen and
+    // remove it again. This was missing entirely before, so tapping fullscreen
+    // on any video (YouTube included) did nothing.
+    private var customView: View? = null
+    private var customViewCallback: android.webkit.WebChromeClient.CustomViewCallback? = null
+    private var fullscreenContainer: FrameLayout? = null
+    private var preFullscreenOrientation: Int = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+    private fun enterFullscreenVideo(view: View, callback: android.webkit.WebChromeClient.CustomViewCallback) {
+        if (customView != null) { callback.onCustomViewHidden(); return }
+        customView = view
+        customViewCallback = callback
+        preFullscreenOrientation = requestedOrientation
+        val decor = window.decorView as FrameLayout
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        }
+        fullscreenContainer = container
+        decor.addView(container, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        findViewById<View>(R.id.mainRoot)?.visibility = View.GONE
+        setImmersiveMode(true)
+        // Don't force landscape here: this callback fires for BOTH <video> fullscreen
+        // AND the generic JS Fullscreen API (element.requestFullscreen()) used by
+        // games, PDF/photo viewers, presentations, etc. Forcing landscape on all of
+        // them rotated non-video sites the wrong way. Let the device sensor / the
+        // site's own orientation lock decide instead.
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    }
+
+    private fun exitFullscreenVideo() {
+        val container = fullscreenContainer ?: return
+        (window.decorView as FrameLayout).removeView(container)
+        fullscreenContainer = null
+        customView = null
+        customViewCallback?.onCustomViewHidden()
+        customViewCallback = null
+        findViewById<View>(R.id.mainRoot)?.visibility = View.VISIBLE
+        setImmersiveMode(false)
+        requestedOrientation = preFullscreenOrientation
+    }
+
+    private fun setImmersiveMode(on: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (on) {
+                window.insetsController?.hide(android.view.WindowInsets.Type.systemBars())
+                window.insetsController?.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                window.insetsController?.show(android.view.WindowInsets.Type.systemBars())
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = if (on) {
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            } else 0
         }
     }
 

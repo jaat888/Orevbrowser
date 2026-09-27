@@ -69,37 +69,43 @@ object VpnGateApi {
         connection.requestMethod = "GET"
 
         val servers = mutableListOf<VpnServer>()
-        BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
-            reader.forEachLine { line ->
-                if (line.startsWith("#") || line.startsWith("*") || line.isBlank()) return@forEachLine
-                val cols = parseCsvLine(line)
-                if (cols.size <= COL_OVPN_CONFIG) return@forEachLine
-                try {
-                    servers.add(
-                        VpnServer(
-                            hostName = cols[COL_HOSTNAME],
-                            ip = cols[COL_IP],
-                            score = cols[COL_SCORE].toLongOrNull() ?: 0L,
-                            pingMs = cols[COL_PING].toIntOrNull() ?: Int.MAX_VALUE,
-                            speedBps = cols[COL_SPEED].toLongOrNull() ?: 0L,
-                            countryLong = cols[COL_COUNTRY_LONG],
-                            countryShort = cols[COL_COUNTRY_SHORT],
-                            numSessions = cols[COL_SESSIONS].toIntOrNull() ?: 0,
-                            uptimeMs = cols[COL_UPTIME].toLongOrNull() ?: 0L,
-                            totalUsers = cols[COL_TOTAL_USERS].toLongOrNull() ?: 0L,
-                            totalTraffic = cols[COL_TOTAL_TRAFFIC].toLongOrNull() ?: 0L,
-                            logType = cols[COL_LOG_TYPE],
-                            operator = cols[COL_OPERATOR],
-                            message = cols[COL_MESSAGE],
-                            openVpnConfigBase64 = cols[COL_OVPN_CONFIG]
+        try {
+            BufferedReader(InputStreamReader(connection.inputStream)).use { reader ->
+                reader.forEachLine { line ->
+                    if (line.startsWith("#") || line.startsWith("*") || line.isBlank()) return@forEachLine
+                    val cols = parseCsvLine(line)
+                    if (cols.size <= COL_OVPN_CONFIG) return@forEachLine
+                    try {
+                        servers.add(
+                            VpnServer(
+                                hostName = cols[COL_HOSTNAME],
+                                ip = cols[COL_IP],
+                                score = cols[COL_SCORE].toLongOrNull() ?: 0L,
+                                pingMs = cols[COL_PING].toIntOrNull() ?: Int.MAX_VALUE,
+                                speedBps = cols[COL_SPEED].toLongOrNull() ?: 0L,
+                                countryLong = cols[COL_COUNTRY_LONG],
+                                countryShort = cols[COL_COUNTRY_SHORT],
+                                numSessions = cols[COL_SESSIONS].toIntOrNull() ?: 0,
+                                uptimeMs = cols[COL_UPTIME].toLongOrNull() ?: 0L,
+                                totalUsers = cols[COL_TOTAL_USERS].toLongOrNull() ?: 0L,
+                                totalTraffic = cols[COL_TOTAL_TRAFFIC].toLongOrNull() ?: 0L,
+                                logType = cols[COL_LOG_TYPE],
+                                operator = cols[COL_OPERATOR],
+                                message = cols[COL_MESSAGE],
+                                openVpnConfigBase64 = cols[COL_OVPN_CONFIG]
+                            )
                         )
-                    )
-                } catch (e: Exception) {
-                    // Skip malformed rows rather than failing the whole fetch.
+                    } catch (e: Exception) {
+                        // Skip malformed rows rather than failing the whole fetch.
+                    }
                 }
             }
+        } finally {
+            // Bug fix: connection.disconnect() previously sat after the read block
+            // unguarded, so any exception while reading (timeout, malformed stream)
+            // skipped it and leaked the underlying socket/connection.
+            connection.disconnect()
         }
-        connection.disconnect()
         return servers
     }
 }

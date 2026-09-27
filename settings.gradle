@@ -10,7 +10,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' } // some ics-openvpn transitive deps only publish here
     }
 }
 rootProject.name = "PrivBrowse"
 include(":app")
+
+// Real OpenVPN engine (GPLv2) — see libs/ics-openvpn/README.txt and NOTICE.md.
+// Must be a checkout of https://github.com/schwabe/ics-openvpn at
+// libs/ics-openvpn before this project will configure/build.
+include(":openvpn")
+project(":openvpn").projectDir = file("libs/ics-openvpn/main")

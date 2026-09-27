@@ -118,7 +118,10 @@ class V2RayVpnService : VpnService() {
         try { LibXrayBridge.invokeStop() } catch (e: Exception) { Log.w(TAG, "Xray stop failed", e) }
         LibXrayBridge.detachVpn()
         running = false
-        tun?.close()
+        // Bug fix: tun.close() can throw IOException; unguarded, that skipped
+        // setRuntimeState/stopForeground/stopSelf below - leaving a stale foreground
+        // notification and a "running" service that never actually stops.
+        runCatching { tun?.close() }
         tun = null
         if (!preserveState) V2RayStore.setRuntimeState(this, "stopped")
         stopForeground(STOP_FOREGROUND_REMOVE)

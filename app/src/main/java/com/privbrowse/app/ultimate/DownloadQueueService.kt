@@ -122,6 +122,11 @@ class DownloadQueueService : Service() {
             )
         } catch (_: Throwable) {
             val attempts = DownloadQueueStore.markAttempt(this, item, if (item.attempts >= 2) "failed" else "queued")
+            // Bug fix: process()'s loop immediately re-picks any "queued" item with no
+            // delay, so a persistent failure (e.g. server down) hammered the same URL
+            // 3 times back-to-back with zero backoff. A short, attempt-scaled pause
+            // gives a transient failure a chance to clear instead of busy-looping.
+            if (attempts < 3) runCatching { Thread.sleep(2_000L * attempts) }
             if (attempts >= 3) {
                 val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                 manager.notify(

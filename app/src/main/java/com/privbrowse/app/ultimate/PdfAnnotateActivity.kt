@@ -185,9 +185,13 @@ class PdfAnnotateActivity : AppCompatActivity() {
     }
 
     private fun closeDocument() {
-        renderer?.close()
+        // Bug fix: renderer.close()/fd.close() can throw (IllegalStateException if a
+        // page was left open, IOException from the fd); unguarded, that skipped every
+        // line below - leaking the fd/bitmaps and never clearing `renderer`/`fd`, so a
+        // second open() on the same instance could throw again or reuse a closed fd.
+        runCatching { renderer?.close() }
         renderer = null
-        fd?.close()
+        runCatching { fd?.close() }
         fd = null
         annotations.values.forEach { runCatching { it.recycle() } }
         annotations.clear()

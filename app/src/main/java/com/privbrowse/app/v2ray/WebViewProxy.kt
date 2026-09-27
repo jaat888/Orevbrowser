@@ -10,12 +10,12 @@ import java.util.concurrent.Executors
 object WebViewProxy {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
-    fun apply(context: Context) {
+    fun apply(context: Context, socksPort: Int = XrayConfigBuilder.WEBVIEW_SOCKS_PORT) {
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)) {
             throw UnsupportedOperationException("This Android System WebView does not support process-level proxy override")
         }
         val config = ProxyConfig.Builder()
-            .addProxyRule("socks://127.0.0.1:${XrayConfigBuilder.WEBVIEW_SOCKS_PORT}")
+            .addProxyRule("socks://127.0.0.1:$socksPort")
             .addBypassRule("localhost")
             .addBypassRule("127.0.0.1")
             .build()

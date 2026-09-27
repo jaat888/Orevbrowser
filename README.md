@@ -44,3 +44,10 @@ The feature catalog is designed around real app actions and existing WebView cap
 ## 1.5 Ultimate wishlist integration
 
 The new **Ultimate Feature Lab** wires the supplied full wishlist into the real browser engine, Android services and existing browser modules where those capabilities are available: tab pin/group/preview controls, automatic inactive-tab cleanup, self-destruct timers, address-bar and edge gestures, live local suggestions, bang commands, clipboard link prompts, Ghost mode, leak-test shortcuts, side-by-side compare, page notes, image gallery, subtitle-track download handoff, reverse-image search handoff, print-friendly extraction, calendar intents, per-domain CSS/JS, accessibility page styles and a command palette. See `WISHLIST_IMPLEMENTATION.md` for the line-by-line status of every wishlist item. Platform-limited items are documented with their exact Android/WebView boundary rather than exposed as fake functionality.
+
+## License
+
+PrivBrowse links the `ics-openvpn` OpenVPN engine (GPLv2) to talk to VPN
+Gate. That makes this repository **GPL-licensed as a whole** for any build
+that includes the `vpn` feature — see `NOTICE.md` for what that obligates
+you to do before sharing the APK with anyone.

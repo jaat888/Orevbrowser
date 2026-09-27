@@ -30,7 +30,7 @@
     <string name="fresh_identity_menu">Fresh identity per tab</string>
     <string name="vpn_disclaimer">VPN Gate is a volunteer-run relay network, not a commercial no-logs VPN. Traffic passes through servers run by strangers, some of whom may log connection or usage data. Use this only if you accept that trade-off.</string>
     <string name="vpn_rotation_label">Auto-rotate server every</string>
-    <string name="vpn_discovery_note">VPN Gate server discovery only. Traffic is not rerouted in this build.</string>
+    <string name="vpn_discovery_note">Tap a relay below to connect through it via OpenVPN.</string>
     <string name="vpn_rotation_off">Off</string>
     <string name="vpn_rotation_1min">1 min</string>
     <string name="vpn_rotation_3min">3 min</string>
@@ -41,7 +41,6 @@
     <string name="vpn_status_idle">Not connected</string>
     <string name="vpn_status_connecting">Fetching VPN Gate server list…</string>
     <string name="vpn_status_discovering">Discovering VPN Gate servers…</string>
-    <string name="vpn_status_discovery_only">Discovery only — no VPN traffic is being routed.</string>
     <string name="vpn_status_connected">Connected via %1$s (%2$s)</string>
 
     <!-- Unified VPN screen: Quick / Custom -->

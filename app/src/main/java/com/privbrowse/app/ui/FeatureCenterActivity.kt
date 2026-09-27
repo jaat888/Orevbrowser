@@ -91,6 +91,13 @@ class FeatureCenterActivity : AppCompatActivity() {
             setPadding(dp(14), dp(4), dp(14), dp(28))
             clipToPadding = false
             setHasFixedSize(false)
+            // The hero/search rows (position 0/1) wrap a single shared View instance
+            // (see frameHost below). The default animator can keep an old ViewHolder's
+            // view alive mid cross-fade while a new one is created for the same shared
+            // child, which rips it out of the still-animating wrapper and crashes on the
+            // next scroll/layout pass. No visual loss here since these two rows never
+            // move or change size on notifyDataSetChanged.
+            itemAnimator = null
         }
         adapter = FeatureAdapter()
         recycler.adapter = adapter
@@ -390,7 +397,7 @@ class FeatureCenterActivity : AppCompatActivity() {
             togglePref("Download confirmations", "Ask before direct media downloads start.", MainActivity.KEY_DOWNLOAD_CONFIRM, true)
             togglePref("Video detection", "Detect direct media candidates in the current page.", MainActivity.KEY_VIDEO_DETECTION, true)
             action("Downloads", "Open the app's direct media/download queue.") { startActivity(Intent(this, VideoDownloadsActivity::class.java)) }
-            action("VPN discovery", "Inspect the app's VPN Gate discovery flow.") { startActivity(Intent(this, VpnActivity::class.java)) }
+            action("VPN Gate", "Discover and connect to a VPN Gate relay over OpenVPN.") { startActivity(Intent(this, VpnActivity::class.java)) }
             action("V2Ray / Xray", "Configure/import supported tunnel profiles.") { startActivity(Intent(this, V2RayActivity::class.java)) }
             action("Connection diagnostics", "Copy browser settings that help troubleshoot a page.") { copyDiagnostics() }
             action("Network log", "Inspect contacted hosts and blocked categories.") { startActivity(Intent(this, TransparencyLogActivity::class.java)) }
@@ -542,12 +549,23 @@ class FeatureCenterActivity : AppCompatActivity() {
 
         // A plain View can only have one parent; wrap fixed top views (hero/search) so
         // RecyclerView can attach/detach them across layout passes without crashing.
-        private fun frameHost(child: View): View = LinearLayout(this@FeatureCenterActivity).apply {
-            orientation = LinearLayout.VERTICAL
-            (child.parent as? ViewGroup)?.removeView(child)
-            addView(child)
+        // If onCreateViewHolder ever fires twice for the same shared child (e.g. an old
+        // holder hasn't finished being recycled yet), reuse its existing wrapper instead
+        // of tearing it out into a second one — that double-wrap is what was crashing on
+        // scroll after a toggle/search refresh.
+        private fun frameHost(child: View): View {
+            val existing = child.parent as? ViewGroup
+            if (existing is FrameHostTag) return existing
+            return FrameHostTag(this@FeatureCenterActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                existing?.removeView(child)
+                addView(child)
+            }
         }
     }
+
+    /** Marker subclass so frameHost() can recognize a wrapper it already created. */
+    private class FrameHostTag(context: android.content.Context) : LinearLayout(context)
 
     private class StaticHolder(view: View) : RecyclerView.ViewHolder(view)
 
