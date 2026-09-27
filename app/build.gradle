@@ -36,6 +36,17 @@ android {
         // PrivBrowseVpnService.kt — never net.openvpn.ovpn3 — so "skeleton"
         // is correct, and it conveniently means SWIG is never needed.
         missingDimensionStrategy 'implementation', 'skeleton'
+
+        // ics-openvpn's :main also has a SECOND flavor dimension, "ovpnimpl",
+        // with flavors "ovpn2" (classic OpenVPN2 engine only, built via
+        // autotools — matches "Install autotools..." CI step, no SWIG) and
+        // "ovpn23" (bundles OpenVPN3 too, needs a SWIG-built native bridge).
+        // Without picking one, Gradle finds "skeletonOvpn2DebugApiElements"
+        // and "skeletonOvpn23DebugApiElements" equally valid and refuses to
+        // choose ("cannot choose between the following variants"). We only
+        // call the classic de.blinkt.openvpn.* API, never net.openvpn.ovpn3,
+        // so "ovpn2" is correct — and it needs no SWIG toolchain.
+        missingDimensionStrategy 'ovpnimpl', 'ovpn2'
     }
 
     buildTypes {
