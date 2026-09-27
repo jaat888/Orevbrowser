@@ -25,6 +25,29 @@ docs and multiple real-world "Unresolved reference: versionCode" reports
 for exactly this application-to-library conversion. This script removes
 all of them along with the plugin swap.
 
+Two more application-only spots were missed by the first version of this
+script and reached CI as "Unresolved reference: versionNameSuffix" /
+"Unresolved reference: applicationVariants" (build failed with 2 errors,
+both pointing at main/build.gradle.kts):
+
+  - `versionNameSuffix` is set per product flavor (inside productFlavors{},
+    not defaultConfig{}), so the old defaultConfig-only removal list never
+    caught it. It's application-only in AGP's typed DSL the same way
+    versionCode/versionName/targetSdk are, so it's removed the same way.
+
+  - `android.applicationVariants.all(object : Action<ApplicationVariant> {
+    ... })` isn't a property or a block matched by the removal helpers
+    above — it's a top-level statement that registers the OpenVPN3 SWIG
+    Java-binding codegen task against every variant. Deleting it would
+    silently break the ovpn3 (ui) flavor at runtime instead of failing
+    the build, which is worse. The library equivalent that keeps this
+    working is `android.libraryVariants.all(object : Action<LibraryVariant>
+    { ... })` — LibraryVariant also exposes registerJavaGeneratingTask, so
+    this is a straight type swap: applicationVariants -> libraryVariants,
+    ApplicationVariant -> LibraryVariant (both in the executor block and
+    in the `import com.android.build.gradle.api.ApplicationVariant` line
+    at the top of the file).
+
 Run this after cloning ics-openvpn, before Gradle configures anything
 (right after the existing AGP-version TOML patch step).
 """
@@ -128,8 +151,39 @@ def main():
         ("versionCode =", "versionCode (app-only in defaultConfig)"),
         ("versionName =", "versionName (app-only in defaultConfig)"),
         ("targetSdk =", "targetSdk (app-only in defaultConfig)"),
+        ("versionNameSuffix =", "versionNameSuffix (app-only, set per product flavor)"),
     ]:
         content = remove_line_containing(content, needle, label)
+
+    # 4. android.applicationVariants.all { ... } — this isn't a settable
+    #    property (nothing for remove_line_containing/remove_brace_block to
+    #    match) and it isn't safe to delete either: it registers the task
+    #    that generates the OpenVPN3 SWIG Java bindings for the ovpn3 (ui)
+    #    flavor. LibraryVariant supports the same registerJavaGeneratingTask
+    #    call, so re-point the whole statement at the library API instead of
+    #    removing it.
+    variant_import = "import com.android.build.gradle.api.ApplicationVariant"
+    if variant_import in content:
+        content = content.replace(
+            variant_import,
+            "import com.android.build.gradle.api.LibraryVariant",
+        )
+        print("Patched import ApplicationVariant -> LibraryVariant")
+    else:
+        print("NOTE: 'import ...ApplicationVariant' line not found — "
+              "nothing to repoint, continuing.")
+
+    content, n = re.subn(r'\bapplicationVariants\b', 'libraryVariants', content)
+    if n:
+        print(f"Patched applicationVariants -> libraryVariants ({n} occurrence(s))")
+    else:
+        print("NOTE: 'applicationVariants' not found — nothing to patch, continuing.")
+
+    content, n = re.subn(r'\bApplicationVariant\b', 'LibraryVariant', content)
+    if n:
+        print(f"Patched ApplicationVariant -> LibraryVariant ({n} occurrence(s))")
+    else:
+        print("NOTE: 'ApplicationVariant' type not found — nothing to patch, continuing.")
 
     with open(BUILD_FILE, "w", encoding="utf-8") as f:
         f.write(content)
