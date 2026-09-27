@@ -12,6 +12,20 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url 'https://jitpack.io' } // some ics-openvpn transitive deps only publish here
     }
+    // ics-openvpn's main/build.gradle.kts uses version-catalog syntax
+    // (alias(libs.plugins.android.application), etc.) but only ITS OWN repo
+    // declares that catalog at gradle/libs.versions.toml — since we only
+    // pull in its main/ subdirectory as a project (not its whole build),
+    // that catalog was never wired up here, causing
+    // "main/build.gradle.kts:9:11: Unresolved reference: libs". The full
+    // repo (cloned by the CI workflow into libs/ics-openvpn) still has its
+    // own gradle/libs.versions.toml at its root, so point our "libs"
+    // catalog straight at that file.
+    versionCatalogs {
+        libs {
+            from(files("libs/ics-openvpn/gradle/libs.versions.toml"))
+        }
+    }
 }
 rootProject.name = "PrivBrowse"
 include(":app")
