@@ -15,3 +15,20 @@ plugins {
 tasks.register('clean', Delete) {
     delete rootProject.layout.buildDirectory
 }
+
+// libs/ics-openvpn's own dependency graph pulls in androidx.core /
+// androidx.core-ktx 1.17.0 transitively (not something either :app or
+// :openvpn's own catalog names directly at that exact version — it's a
+// newer transitive default). 1.17.0's AAR metadata requires AGP 8.9.1+,
+// but we're pinned to AGP 8.2.2 (ics-openvpn's real build script still
+// uses pre-AGP9 APIs — see settings.gradle). So force every project
+// (:app and :openvpn both) onto 1.13.1, the last androidx.core release
+// line that doesn't raise the AGP floor above 8.2.2.
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+        }
+    }
+}
