@@ -82,9 +82,19 @@ def main():
         content = f.read()
 
     # 1. Plugin swap: application -> library.
+    #
+    # NOT `alias(libs.plugins.android.library)`: ics-openvpn's own
+    # gradle/libs.versions.toml only ever defines an "android-application"
+    # plugin alias (it never had a library module before), so that
+    # type-safe accessor doesn't exist and fails with "Unresolved
+    # reference: library". Apply the plugin by its literal id instead —
+    # settings.gradle's pluginManagement.resolutionStrategy.eachPlugin
+    # already forces BOTH 'com.android.application' and
+    # 'com.android.library' ids to the same pinned AGP module, so no
+    # version needs to be given here either.
     new_content, n = re.subn(
         r'alias\(\s*libs\.plugins\.android\.application\s*\)',
-        'alias(libs.plugins.android.library)',
+        'id("com.android.library")',
         content,
         count=1,
     )
@@ -94,7 +104,7 @@ def main():
             f"{BUILD_FILE} — ics-openvpn's plugin declaration style may "
             "have changed; patch this script (or the file) by hand."
         )
-    print("Patched plugins{} -> com.android.library")
+    print("Patched plugins{} -> com.android.library (by literal id, not catalog alias)")
     content = new_content
 
     # 2. Application-only blocks that don't exist / don't compile under
