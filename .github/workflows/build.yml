@@ -85,6 +85,18 @@ jobs:
       - name: Convert ics-openvpn's :main module from application to library
         run: python3 scripts/patch_ics_openvpn_to_library.py
 
+      # DEBUG: the java compile errors seen so far ("cannot find symbol"
+      # for BaseActivity, MainActivity, VPNPreferences, InternalWebView,
+      # Utils, ProfileEncryption, KeyChainSettingsFragment — i.e. large
+      # swaths of ics-openvpn's OWN shared classes suddenly unresolved)
+      # point at something structural in how the two patch scripts above
+      # left this file — not a single missing symbol. Print the exact
+      # post-patch file, with line numbers, so the real content (not a
+      # guess/reconstruction) is visible directly in this log for the
+      # next diagnosis pass. Safe to remove once the build is green.
+      - name: 'DEBUG: print patched ics-openvpn build.gradle.kts'
+        run: cat -n libs/ics-openvpn/main/build.gradle.kts
+
       # ics-openvpn's main/build.gradle(.kts) sets its OWN `ndkVersion`
       # (independent of whatever NDK we install for libXray below). If that
       # exact side-by-side NDK isn't already present, AGP may fail to
