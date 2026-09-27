@@ -40,7 +40,12 @@ jobs:
         run: yes | sdkmanager --licenses > /dev/null || true
 
       - name: Install Android SDK/NDK
-        run: sdkmanager "platform-tools" "platforms;android-34" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "ndk;27.2.12479018"
+        # ndk;28.2.13676358 added: AGP 9.0.0's default ndkVersion (neither
+        # :app nor :openvpn sets android.ndkVersion explicitly), so it's
+        # what AGP will look for/auto-provision for :app now that root
+        # build.gradle pins AGP 9.0.0. ics-openvpn's own separately-pinned
+        # NDK (may differ) is still detected and installed in the next step.
+        run: sdkmanager "platform-tools" "platforms;android-34" "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "ndk;27.2.12479018" "ndk;28.2.13676358"
 
       # settings.gradle declares project(":openvpn") pointing at
       # libs/ics-openvpn/main. Without this checkout that directory does not
@@ -102,10 +107,16 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Gradle 8.5
+      - name: Setup Gradle 9.2.0
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.5"
+          # Bumped from 8.5: root build.gradle pins AGP 9.0.0 (to match
+          # libs/ics-openvpn's own version-catalog request for that same
+          # plugin/version), and AGP 9.0.0 requires Gradle >= 9.1.0. This
+          # step installs and runs its own `gradle` binary (not `./gradlew`),
+          # so it must be bumped here too, separately from
+          # gradle/wrapper/gradle-wrapper.properties.
+          gradle-version: "9.2.0"
           # ics-openvpn (cloned above) ships its own gradle/wrapper/gradle-wrapper.jar
           # from its own Gradle version. setup-gradle validates every wrapper jar in
           # the repo by default and that one isn't in its trusted-checksum list, so
