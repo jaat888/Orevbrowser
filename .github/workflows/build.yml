@@ -162,8 +162,20 @@ jobs:
           # above), so it's safe to skip this check.
           validate-wrappers: false
 
+      # NOTE: this must stay ":app:assembleDebug" and NOT bare "assembleDebug".
+      # A bare task name makes Gradle run "assembleDebug" in EVERY subproject
+      # that has one — including libs/ics-openvpn's own :openvpn library,
+      # which then tries to build ALL of its own flavor combinations
+      # (ui + skeleton, ovpn2 + ovpn23), not just the skeletonOvpn2 combo
+      # :app actually depends on (see app/build.gradle's
+      # missingDimensionStrategy calls). Building the "ui" flavor on its own
+      # fails with cascading "cannot find symbol" errors (BaseActivity,
+      # VpnProfile, Utils, MainActivity, ...) — that flavor is ics-openvpn's
+      # own standalone UI, unused by this app, and broken by the
+      # application->library patch above. Scoping the task to :app avoids
+      # building it at all.
       - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon :app:assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
