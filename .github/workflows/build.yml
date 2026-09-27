@@ -42,6 +42,24 @@ jobs:
       - name: Install Android SDK/NDK
         run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;27.2.12479018"
 
+      # settings.gradle declares project(":openvpn") pointing at
+      # libs/ics-openvpn/main. Without this checkout that directory does not
+      # exist, so Gradle treats :openvpn as an empty project with no
+      # consumable configuration and ":app:assembleDebug" fails with
+      # "Could not resolve project :openvpn ... None of the consumable
+      # configurations have attributes." Pinned to v0.7.64 per
+      # libs/ics-openvpn/README.txt (PrivBrowseVpnService.kt's ConfigParser/
+      # VpnProfile/ProfileManager/VPNLaunchHelper/OpenVPNService calls were
+      # checked against that exact tag).
+      - name: Clone ics-openvpn (GPLv2 OpenVPN engine, pinned v0.7.64)
+        run: |
+          rm -rf libs/ics-openvpn
+          git clone --recursive --branch v0.7.64 https://github.com/schwabe/ics-openvpn.git libs/ics-openvpn
+          test -f libs/ics-openvpn/main/build.gradle || test -f libs/ics-openvpn/main/build.gradle.kts
+
+      - name: Install autotools for ics-openvpn native OpenSSL/openvpn build
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pkg-config
+
       - name: Switch to JDK 21 for libXray native build
         uses: actions/setup-java@v4
         with:
